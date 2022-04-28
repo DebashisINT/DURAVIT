@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "686085327336",
+    "project_id": "duravit-49901",
+    "storage_bucket": "duravit-49901.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:686085327336:android:a6e022c93119a44f467c5d",
+        "android_client_info": {
+          "package_name": "com.duravit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "686085327336-t0mupvfs1k825ev9e10jb6ujph98sh91.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvjBkXiwrwmAtcyPYEYEkSrhzqAvUktbs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "686085327336-t0mupvfs1k825ev9e10jb6ujph98sh91.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
