@@ -30,8 +30,8 @@ class NetworkConstant {
 
 
 
-//        var BASE_URL = "http://fts.indusnettechnologies.com:7023/API/"
-//        var ADD_SHOP_BASE_URL = "http://fts.indusnettechnologies.com:7023/"
+//        var BASE_URL = "http://fts.indusnettechnologies.com:7025/API/"
+//        var ADD_SHOP_BASE_URL = "http://fts.indusnettechnologies.com:7025/"
 
         var BASE_URL = "http://3.7.30.86:82/API/"
         var ADD_SHOP_BASE_URL = "http://3.7.30.86:82/"
