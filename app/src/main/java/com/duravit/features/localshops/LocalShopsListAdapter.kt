@@ -26,6 +26,7 @@ import kotlinx.android.synthetic.main.inflate_nearby_shops.view.add_order_ll
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.add_quot_ll
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.call_ll
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.direction_ll
+import kotlinx.android.synthetic.main.inflate_nearby_shops.view.direction_view
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.last_visited_date_TV
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.ll_shop_code
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.myshop_address_TV
@@ -40,6 +41,7 @@ import kotlinx.android.synthetic.main.inflate_nearby_shops.view.total_v_TV
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.total_visited_value_TV
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.tv_shop_code
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.tv_shop_contact_no
+import kotlinx.android.synthetic.main.inflate_registered_shops.view.*
 
 /**
  * Created by riddhi on 2/1/18.
@@ -378,6 +380,14 @@ class LocalShopsListAdapter(context: Context, list: List<AddShopDBModelEntity>, 
             }
             itemView.history_llll.setOnClickListener {
                 listener.onHistoryClick(list[adapterPosition])
+            }
+
+            if (Pref.isOrderShow) {
+                itemView.add_order_ll.visibility = View.VISIBLE
+                itemView.direction_view.visibility = View.VISIBLE
+            } else {
+                itemView.add_order_ll.visibility = View.GONE
+                itemView.direction_view.visibility = View.GONE
             }
 
 
