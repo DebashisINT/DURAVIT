@@ -14,6 +14,9 @@ interface LeaveTypeDao {
     @Query("SELECT * FROM " + AppConstant.LEAVE_TYPE_TABLE)
     fun getAll(): List<LeaveTypeEntity>
 
+    @Query("SELECT * FROM " + AppConstant.LEAVE_TYPE_TABLE + " where leave_type=:leave_type")
+    fun getId(leave_type:String): LeaveTypeEntity
+
     @Insert
     fun insert(vararg leaveType: LeaveTypeEntity)
 

@@ -10,6 +10,7 @@ import android.os.Handler
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.text.TextUtils
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -37,10 +38,7 @@ import com.duravit.base.presentation.BaseActivity
 import com.duravit.base.presentation.BaseFragment
 import com.duravit.features.addAttendence.api.addattendenceapi.AddAttendenceRepoProvider
 import com.duravit.features.addAttendence.api.leavetytpeapi.LeaveTypeRepoProvider
-import com.duravit.features.addAttendence.model.GetReportToFCMResponse
-import com.duravit.features.addAttendence.model.GetReportToResponse
-import com.duravit.features.addAttendence.model.LeaveTypeResponseModel
-import com.duravit.features.addAttendence.model.SendLeaveApprovalInputParams
+import com.duravit.features.addAttendence.model.*
 import com.duravit.features.dashboard.presentation.DashboardActivity
 import com.duravit.features.location.LocationWizard
 import com.duravit.widgets.AppCustomEditText
@@ -245,9 +243,66 @@ class ApplyLeaveFragment : BaseFragment(), View.OnClickListener, DatePickerDialo
         else if (Pref.willLeaveApprovalEnable && TextUtils.isEmpty(et_leave_reason_text.text.toString().trim()))
             (mContext as DashboardActivity).showSnackMessage("Please enter reason")
         else{
-            callLeaveApprovalApi()
+            //callLeaveApprovalApi()
+            callLeaveApiForUser()
         }
 
+
+    }
+
+
+    private fun callLeaveApiForUser(){
+
+        var addAttendenceModel: AddAttendenceInpuModel = AddAttendenceInpuModel()
+        addAttendenceModel.user_id=Pref.user_id.toString()
+        addAttendenceModel.add_attendence_time=AppUtils.getCurrentTimeWithMeredian()
+        addAttendenceModel.collection_taken="0"
+        addAttendenceModel.distance=""
+        addAttendenceModel.distributor_name=""
+        addAttendenceModel.from_id=""
+        addAttendenceModel.is_on_leave="true"
+        addAttendenceModel.leave_from_date=startDate
+        addAttendenceModel.leave_to_date=endDate
+        addAttendenceModel.work_date_time=AppUtils.getCurrentDateTime()
+
+        var mLeaveReason=""
+        if (!TextUtils.isEmpty(et_leave_reason_text.text.toString().trim()))
+            mLeaveReason = et_leave_reason_text.text.toString().trim()
+
+        addAttendenceModel.leave_reason=mLeaveReason
+        addAttendenceModel.leave_type=leaveId
+        addAttendenceModel.market_worked=""
+        addAttendenceModel.new_shop_visit="0"
+        addAttendenceModel.order_taken="0"
+
+        addAttendenceModel.revisit_shop="0"
+        addAttendenceModel.route=""
+        addAttendenceModel.session_token=""
+
+        val repository = AddAttendenceRepoProvider.addAttendenceRepo()
+        progress_wheel.spin()
+        BaseActivity.compositeDisposable.add(
+            repository.addAttendence(addAttendenceModel)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe({ result ->
+                    progress_wheel.stopSpinning()
+                    val response = result as BaseResponse
+                    if (response.status == NetworkConstant.SUCCESS) {
+                        callLeaveApprovalApi()
+                    } else {
+                        BaseActivity.isApiInitiated = false
+                        (mContext as DashboardActivity).showSnackMessage(response.message!!)
+                    }
+                    Log.e("ApprovalPend work attendance", "api work type")
+
+                }, { error ->
+                    XLog.d("AddAttendance Response Msg=========> " + error.message)
+                    BaseActivity.isApiInitiated = false
+                    progress_wheel.stopSpinning()
+                    (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
+                })
+        )
 
     }
 

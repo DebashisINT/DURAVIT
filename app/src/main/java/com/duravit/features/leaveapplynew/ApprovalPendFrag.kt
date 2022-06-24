@@ -1,12 +1,16 @@
 package com.duravit.features.leaveapplynew
 
 import android.app.Dialog
+import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,23 +20,36 @@ import com.android.volley.AuthFailureError
 import com.android.volley.Response
 import com.android.volley.VolleyError
 import com.android.volley.toolbox.JsonObjectRequest
+import com.duravit.CustomConstants
+import com.duravit.MonitorService
 import com.duravit.MySingleton
 import com.duravit.R
+import com.duravit.app.AppDatabase
 import com.duravit.app.NetworkConstant
 import com.duravit.app.Pref
+import com.duravit.app.domain.SelectedRouteEntity
+import com.duravit.app.domain.SelectedRouteShopListEntity
+import com.duravit.app.domain.SelectedWorkTypeEntity
 import com.duravit.app.types.FragType
 import com.duravit.app.utils.AppUtils
+import com.duravit.app.utils.NotificationUtils
+import com.duravit.app.utils.Toaster
 import com.duravit.base.BaseResponse
 import com.duravit.base.presentation.BaseActivity
 import com.duravit.base.presentation.BaseFragment
+import com.duravit.features.addAttendence.PrimaryValueAdapter
 import com.duravit.features.addAttendence.api.addattendenceapi.AddAttendenceRepoProvider
 import com.duravit.features.addAttendence.api.leavetytpeapi.LeaveTypeRepoProvider
+import com.duravit.features.addAttendence.model.AddAttendenceInpuModel
 import com.duravit.features.addAttendence.model.ApprovalLeaveResponseModel
 import com.duravit.features.addAttendence.model.GetReportToFCMResponse
 import com.duravit.features.addAttendence.model.Leave_list_Response
 import com.duravit.features.dashboard.presentation.DashboardActivity
+import com.duravit.features.geofence.GeofenceService
 import com.duravit.features.leaveapplynew.adapter.AdapterAppliedLeaveList
 import com.duravit.features.leaveapplynew.model.ApprovalRejectReqModel
+import com.duravit.features.location.LocationFuzedService
+import com.duravit.features.login.UserLoginDataEntity
 import com.duravit.widgets.AppCustomEditText
 import com.duravit.widgets.AppCustomTextView
 import com.elvishew.xlog.XLog
@@ -51,6 +68,10 @@ class ApprovalPendFrag: BaseFragment(), View.OnClickListener {
     var appliedLeaveList: ArrayList<Leave_list_Response> = ArrayList()
     private var userId = ""
     private var remark = ""
+    private var mleaveType = ""
+    private var mLeaveFromDate = ""
+    private var mLeaveToDate = ""
+    private var mLeaveReason = ""
 
     private var adapterappliedLeaveList: AdapterAppliedLeaveList? = null
     private lateinit var progress_wheel: com.pnikosis.materialishprogress.ProgressWheel
@@ -130,6 +151,16 @@ class ApprovalPendFrag: BaseFragment(), View.OnClickListener {
         if(list.size>0){
             rvApprovalPendingList.adapter = AdapterAppliedLeaveList(mContext, list!!, clickedUserId, object : ClickonStatus {
                 override fun OnApprovedclick(obj: Leave_list_Response) {
+                    mleaveType=obj.leave_type.toString()
+                    mLeaveFromDate=AppUtils.getFormatedDateNew(obj.from_date.toString(),"dd-mm-yyyy","yyyy-mm-dd")!!
+                    mLeaveToDate=AppUtils.getFormatedDateNew(obj.to_date.toString(),"dd-mm-yyyy","yyyy-mm-dd")!!
+                    mLeaveReason=obj.leave_reason.toString()
+                    try{
+                        mleaveType=AppDatabase.getDBInstance()?.leaveTypeDao()?.getId(obj.leave_type.toString())!!.id.toString()
+                    }catch (ex:Exception){
+                        mleaveType=""
+                    }
+
                     dialogOpenRemark("APPROVE", obj)
                 }
 
@@ -155,9 +186,13 @@ class ApprovalPendFrag: BaseFragment(), View.OnClickListener {
         val dialogYes = simpleDialog.findViewById(R.id.dialog_remark_ok) as AppCustomTextView
 
         dialogYes.setOnClickListener({ view ->
-            simpleDialog.cancel()
-            remark =  dialog_remark.text.toString().trim()
-            apiCallOnClick(status,obj)
+            if(dialog_remark.text.toString().trim().length>0){
+                simpleDialog.cancel()
+                remark =  dialog_remark.text.toString().trim()
+                apiCallOnClick(status,obj)
+            }else{
+                Toaster.msgShort(mContext,"Please enter remarks.")
+            }
         })
 
         simpleDialog.show()
@@ -267,6 +302,11 @@ class ApprovalPendFrag: BaseFragment(), View.OnClickListener {
                         dialogYes.setOnClickListener({ view ->
                             simpleDialog.cancel()
                             Handler(Looper.getMainLooper()).postDelayed({
+                                /*if(msg.equals("APPROVED")){
+                                    callLeaveApiForUser()
+                                }else{
+                                    (mContext as DashboardActivity).onBackPressed()
+                                }*/
                                 (mContext as DashboardActivity).onBackPressed()
                             }, 500)
                         })
@@ -289,6 +329,55 @@ class ApprovalPendFrag: BaseFragment(), View.OnClickListener {
         }
 
         MySingleton.getInstance(mContext)!!.addToRequestQueue(jsonObjectRequest)
+    }
+
+    private fun callLeaveApiForUser(){
+
+        var addAttendenceModel: AddAttendenceInpuModel=AddAttendenceInpuModel()
+        addAttendenceModel.user_id=userId
+        addAttendenceModel.add_attendence_time=AppUtils.getCurrentTimeWithMeredian()
+        addAttendenceModel.collection_taken="0"
+        addAttendenceModel.distance=""
+        addAttendenceModel.distributor_name=""
+        addAttendenceModel.from_id=""
+        addAttendenceModel.is_on_leave="true"
+        addAttendenceModel.leave_from_date=mLeaveFromDate
+        addAttendenceModel.leave_to_date=mLeaveToDate
+        addAttendenceModel.leave_reason=mLeaveReason
+        addAttendenceModel.leave_type=mleaveType
+        addAttendenceModel.market_worked=""
+        addAttendenceModel.new_shop_visit="0"
+        addAttendenceModel.order_taken="0"
+
+        addAttendenceModel.revisit_shop="0"
+        addAttendenceModel.route=""
+        addAttendenceModel.session_token=""
+
+        val repository = AddAttendenceRepoProvider.addAttendenceRepo()
+        progress_wheel.spin()
+        BaseActivity.compositeDisposable.add(
+            repository.addAttendence(addAttendenceModel)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe({ result ->
+                    progress_wheel.stopSpinning()
+                    val response = result as BaseResponse
+                    if (response.status == NetworkConstant.SUCCESS) {
+                        (mContext as DashboardActivity).onBackPressed()
+                    } else {
+                        BaseActivity.isApiInitiated = false
+                        (mContext as DashboardActivity).showSnackMessage(response.message!!)
+                    }
+                    Log.e("ApprovalPend work attendance", "api work type")
+
+                }, { error ->
+                    XLog.d("AddAttendance Response Msg=========> " + error.message)
+                    BaseActivity.isApiInitiated = false
+                    progress_wheel.stopSpinning()
+                    (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
+                })
+        )
+
     }
 
 
