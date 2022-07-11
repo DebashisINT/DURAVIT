@@ -395,4 +395,6 @@ object Pref : PreferenceHolder() {
 
     var LogoutWithLogFile: Boolean by bindToPreferenceField(false, "LogoutWithLogFile")
 
+    var IgnoreNumberCheckwhileShopCreation:Boolean by bindToPreferenceField(false, "IgnoreNumberCheckwhileShopCreation")
+
 }

@@ -165,7 +165,12 @@ class LocalShopsListAdapter(context: Context, list: List<AddShopDBModelEntity>, 
 
             if (list[adapterPosition].visited) {
                 itemView.visit_icon.visibility = View.VISIBLE
-                itemView.visit_TV.text = "Revisited Today"
+//                itemView.visit_TV.text = "Revisited Today"
+                if(Pref.isMultipleVisitEnable){
+                    itemView.visit_TV.text = "Revisit Again"
+                }else {
+                    itemView.visit_TV.text = "Revisited Today"
+                }
             } else {
                 itemView.visit_icon.visibility = View.GONE
 
