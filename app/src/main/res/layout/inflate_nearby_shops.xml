@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical">
 
     <RelativeLayout
@@ -51,7 +52,7 @@
                         android:padding="@dimen/_5sdp"
                         android:singleLine="true"
                         android:text=""
-                        android:textColor="@color/maroon"
+                        android:textColor="@color/color_custom_green"
                         android:textSize="@dimen/_12sdp"
                         android:textStyle="bold" />
                 </RelativeLayout>
