@@ -185,6 +185,7 @@ class LocalShopsListAdapter(context: Context, list: List<AddShopDBModelEntity>, 
                     itemView.visit_TV.text = "VISIT THIS SHOP"*/
 
                 itemView.visit_TV.text = "Revisit Now"
+                itemView.visit_TV.setTextColor(ContextCompat.getColor(context, R.color.color_custom_green))
             }
 
             itemView.shop_list_LL.setOnClickListener(View.OnClickListener {
