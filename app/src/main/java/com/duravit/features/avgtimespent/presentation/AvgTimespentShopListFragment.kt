@@ -348,7 +348,15 @@ class AvgTimespentShopListFragment : BaseFragment(), DatePickerListener, View.On
                 shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
             else
                 shopDurationData.approximate_1st_billing_value = ""
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
             shopDataList.add(shopDurationData)
 
             XLog.d("========SYNC ALL VISITED SHOP DATA (AVERAGE SHOP)=====")
@@ -852,6 +860,12 @@ class AvgTimespentShopListFragment : BaseFragment(), DatePickerListener, View.On
         addShopData.alternateNoForCustomer = shop.alternateNoForCustomer
         addShopData.whatsappNoForCustomer = shop.whatsappNoForCustomer
 
+        // duplicate shop api call
+        addShopData.isShopDuplicate=shop.isShopDuplicate
+
+         addShopData.purpose=shop.purpose
+
+
         callAddShopApi(addShopData, shop.shopImageLocalPath, shop.doc_degree, position)
         //}
     }
@@ -1149,7 +1163,15 @@ class AvgTimespentShopListFragment : BaseFragment(), DatePickerListener, View.On
             else
                 shopDurationData.approximate_1st_billing_value = ""
 
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
             shopDataList.add(shopDurationData)
         }
         else {
@@ -1233,7 +1255,15 @@ class AvgTimespentShopListFragment : BaseFragment(), DatePickerListener, View.On
                     shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
                 else
                     shopDurationData.approximate_1st_billing_value = ""
-
+                //duration garbage fix
+                try{
+                    if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                    {
+                        shopDurationData.spent_duration="00:00:10"
+                    }
+                }catch (ex:Exception){
+                    shopDurationData.spent_duration="00:00:10"
+                }
 
                 shopDataList.add(shopDurationData)
             }
@@ -1534,7 +1564,15 @@ class AvgTimespentShopListFragment : BaseFragment(), DatePickerListener, View.On
                 shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
             else
                 shopDurationData.approximate_1st_billing_value = ""
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
             shopDataList.add(shopDurationData)
 
             if (shopDataList.isEmpty()) {
@@ -1828,7 +1866,15 @@ class AvgTimespentShopListFragment : BaseFragment(), DatePickerListener, View.On
             shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
         else
             shopDurationData.approximate_1st_billing_value = ""
-
+        //duration garbage fix
+        try{
+            if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+            {
+                shopDurationData.spent_duration="00:00:10"
+            }
+        }catch (ex:Exception){
+            shopDurationData.spent_duration="00:00:10"
+        }
         shopDataList.add(shopDurationData)
 
         if (shopDataList.isEmpty()) {
@@ -2231,6 +2277,11 @@ class AvgTimespentShopListFragment : BaseFragment(), DatePickerListener, View.On
 
             addShopData.alternateNoForCustomer = mAddShopDBModelEntity.alternateNoForCustomer
             addShopData.whatsappNoForCustomer = mAddShopDBModelEntity.whatsappNoForCustomer
+
+             // duplicate shop api call
+            addShopData.isShopDuplicate=mAddShopDBModelEntity.isShopDuplicate
+            addShopData.purpose=mAddShopDBModelEntity.purpose
+
 
 
             callAddShopApi(addShopData, mAddShopDBModelEntity.shopImageLocalPath, shopList, true,

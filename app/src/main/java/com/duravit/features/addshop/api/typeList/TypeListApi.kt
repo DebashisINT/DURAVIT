@@ -5,6 +5,7 @@ import com.duravit.app.NetworkConstant
 import com.duravit.base.BaseResponse
 import com.duravit.features.addshop.model.*
 import com.duravit.features.addshop.model.assigntopplist.AssignToPPListResponseModel
+import com.duravit.features.beatCustom.BeatTeamResponseModel
 import io.reactivex.Observable
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory

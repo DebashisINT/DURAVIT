@@ -29,6 +29,12 @@ public interface AddShopDao {
     @Query("SELECT * FROM " + SHOP_TABLE)
     List<AddShopDBModelEntity> getAll();
 
+    @Query("select distinct shop_detail.* from shop_detail inner join order_details_list on shop_detail.shop_id = order_details_list.shop_id ")
+    List<AddShopDBModelEntity> getShopIdHasOrder();
+
+    @Query("select distinct shop_detail.* from shop_detail inner join order_details_list on shop_detail.shop_id = order_details_list.shop_id and assigned_to_dd_id=:assigned_to_dd_id and lastVisitedDate=:lastVisitedDate")
+    List<AddShopDBModelEntity> getShopIdHasOrderDDWise(String assigned_to_dd_id,String lastVisitedDate);
+
 
     @Query("select  * from shop_detail where shopid < 10")
     List<AddShopDBModelEntity> getTop10();
@@ -221,6 +227,12 @@ public interface AddShopDao {
     @Query("select * FROM " + SHOP_TABLE +" where shop_id=:shop_id")
     List<AddShopDBModelEntity> getShopIdFromDtls(String shop_id);
 
+
+    @Query("SELECT * FROM " + SHOP_TABLE+" where assigned_to_dd_id=:assigned_to_dd_id")
+    List<AddShopDBModelEntity> getShopByDD(String assigned_to_dd_id);
+
+    @Query("SELECT * FROM " + SHOP_TABLE+" where visitDate=:visitDate")
+    List<AddShopDBModelEntity> getShopCreatedToday(String visitDate);
 
 //    @Query("INSERT OR REPLACE INTO SHOP_TABLE (shopId,shopName,address,pinCode,ownerName,isVisited) VALUES (:id, :title, :url, COALESCE((SELECT isSubscribed FROM articles WHERE id = :id), 0));")
 //    void insertOrUpdateShop(long id, String title, String url);

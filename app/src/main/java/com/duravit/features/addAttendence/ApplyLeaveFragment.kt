@@ -1,5 +1,6 @@
 package com.duravit.features.addAttendence
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
@@ -7,8 +8,6 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.Handler
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import android.text.TextUtils
 import android.util.Log
 import android.view.LayoutInflater
@@ -18,6 +17,8 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.AuthFailureError
 import com.android.volley.Response
 import com.android.volley.VolleyError
@@ -29,8 +30,6 @@ import com.duravit.app.AppDatabase
 import com.duravit.app.NetworkConstant
 import com.duravit.app.Pref
 import com.duravit.app.domain.LeaveTypeEntity
-import com.duravit.app.domain.RouteEntity
-import com.duravit.app.types.FragType
 import com.duravit.app.utils.AppUtils
 import com.duravit.app.utils.FTStorageUtils
 import com.duravit.base.BaseResponse
@@ -50,7 +49,11 @@ import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.Duration
+import java.time.LocalDate
+import java.time.Period
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * Created by Saikat on 05-Aug-20.
@@ -244,14 +247,37 @@ class ApplyLeaveFragment : BaseFragment(), View.OnClickListener, DatePickerDialo
             (mContext as DashboardActivity).showSnackMessage("Please enter reason")
         else{
             //callLeaveApprovalApi()
-            callLeaveApiForUser()
+            calculateDaysForLeave()
+            //callLeaveApiForUser()
         }
-
-
     }
 
+    var dateList:ArrayList<String> = ArrayList()
+    var count=0
+
+    @SuppressLint("NewApi")
+    private fun calculateDaysForLeave(){
+        val stDate = LocalDate.parse(startDate)
+        val enDate = LocalDate.parse(endDate)
+        val diff = Period.between(stDate,enDate)
+
+
+        dateList.add(startDate)
+        var countDate=stDate
+
+        for(i in 0..diff.days-1){
+            countDate=countDate.plusDays(1)
+            dateList.add(countDate.toString())
+        }
+        //for(j in 0..dateList.size-1){
+            callLeaveApiForUser()
+        //}
+    }
 
     private fun callLeaveApiForUser(){
+
+        var stDate=dateList.get(count).toString()
+        var enDate=dateList.get(count).toString()
 
         var addAttendenceModel: AddAttendenceInpuModel = AddAttendenceInpuModel()
         addAttendenceModel.user_id=Pref.user_id.toString()
@@ -261,9 +287,10 @@ class ApplyLeaveFragment : BaseFragment(), View.OnClickListener, DatePickerDialo
         addAttendenceModel.distributor_name=""
         addAttendenceModel.from_id=""
         addAttendenceModel.is_on_leave="true"
-        addAttendenceModel.leave_from_date=startDate
-        addAttendenceModel.leave_to_date=endDate
-        addAttendenceModel.work_date_time=AppUtils.getCurrentDateTime()
+        addAttendenceModel.leave_from_date=stDate
+        addAttendenceModel.leave_to_date=enDate
+        //addAttendenceModel.work_date_time=AppUtils.getCurrentDateTime()
+        addAttendenceModel.work_date_time=stDate + " "+AppUtils.getCurrentTime()
 
         var mLeaveReason=""
         if (!TextUtils.isEmpty(et_leave_reason_text.text.toString().trim()))
@@ -278,6 +305,9 @@ class ApplyLeaveFragment : BaseFragment(), View.OnClickListener, DatePickerDialo
         addAttendenceModel.revisit_shop="0"
         addAttendenceModel.route=""
         addAttendenceModel.session_token=""
+        addAttendenceModel.work_lat=Pref.current_latitude
+        addAttendenceModel.work_long=Pref.current_longitude
+        addAttendenceModel.beat_id = "0"
 
         val repository = AddAttendenceRepoProvider.addAttendenceRepo()
         progress_wheel.spin()
@@ -289,7 +319,13 @@ class ApplyLeaveFragment : BaseFragment(), View.OnClickListener, DatePickerDialo
                     progress_wheel.stopSpinning()
                     val response = result as BaseResponse
                     if (response.status == NetworkConstant.SUCCESS) {
+                        if(count==(dateList.size-1)){
+                            count=0
                         callLeaveApprovalApi()
+                        }else{
+                            count++
+                            callLeaveApiForUser()
+                        }
                     } else {
                         BaseActivity.isApiInitiated = false
                         (mContext as DashboardActivity).showSnackMessage(response.message!!)
@@ -313,11 +349,14 @@ class ApplyLeaveFragment : BaseFragment(), View.OnClickListener, DatePickerDialo
             return
         }
 
+        var stDate=dateList.get(count).toString()
+        var enDate=dateList.get(count).toString()
+
         val leaveApproval = SendLeaveApprovalInputParams()
         leaveApproval.session_token = Pref.session_token!!
         leaveApproval.user_id = Pref.user_id!!
-        leaveApproval.leave_from_date = startDate
-        leaveApproval.leave_to_date = endDate
+        leaveApproval.leave_from_date = stDate
+        leaveApproval.leave_to_date = enDate
         leaveApproval.leave_type = leaveId
 
         var tt=AppUtils.getCurrentDateTime()
@@ -367,8 +406,15 @@ class ApplyLeaveFragment : BaseFragment(), View.OnClickListener, DatePickerDialo
                             BaseActivity.isApiInitiated = false
 
                             if (response.status == NetworkConstant.SUCCESS) {
-
+                                if(count==(dateList.size-1)){
+                                    count=0
                                     openPopupshowMessage(response.message!!)
+                                }else{
+                                    count++
+                                    callLeaveApprovalApi()
+
+                                }
+
 //                                (mContext as DashboardActivity).showSnackMessage(response.message!!)
                                 //(mContext as DashboardActivity).onBackPressed()
 

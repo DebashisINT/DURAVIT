@@ -153,7 +153,32 @@ class MemberListAdapter(context: Context, val teamList: ArrayList<TeamListDataMo
                 listener.onLocClick(teamList[adapterPosition])
             }
 
+            itemView.iv_coll.setOnClickListener{
+                listener.onCollClick(teamList[adapterPosition])
+            }
+
             itemView.iv_job.visibility=View.GONE
+
+            if(Pref.IsShowRepeatOrdersNotificationinTeam){
+                itemView.iv_zero_order.visibility = View.VISIBLE
+            }else{
+                itemView.iv_zero_order.visibility = View.GONE
+            }
+
+            itemView.iv_zero_order.setOnClickListener{
+                listener.onZeroOrderClick(teamList[adapterPosition])
+            }
+
+            if(Pref.IsBeatRouteReportAvailableinTeam){
+                itemView.iv_beat.visibility = View.VISIBLE
+            }else{
+                itemView.iv_beat.visibility = View.GONE
+            }
+
+            itemView.iv_beat.setOnClickListener{
+                listener.onBeatClick(teamList[adapterPosition])
+            }
+
         }
     }
 
@@ -169,6 +194,12 @@ class MemberListAdapter(context: Context, val teamList: ArrayList<TeamListDataMo
         fun onPjpClick(team: TeamListDataModel)
 
         fun onLocClick(team: TeamListDataModel)
+
+        fun onCollClick(team: TeamListDataModel)
+
+        fun onZeroOrderClick(team: TeamListDataModel)
+
+        fun onBeatClick(team: TeamListDataModel)
 
         fun getSize(size: Int)
     }

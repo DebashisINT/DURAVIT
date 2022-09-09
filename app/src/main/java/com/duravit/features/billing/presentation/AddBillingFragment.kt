@@ -546,6 +546,11 @@ class AddBillingFragment : BaseFragment(), View.OnClickListener {
         addShopData.alternateNoForCustomer = shop.alternateNoForCustomer
         addShopData.whatsappNoForCustomer = shop.whatsappNoForCustomer
 
+        // duplicate shop api call
+        addShopData.isShopDuplicate=shop.isShopDuplicate
+
+        addShopData.purpose=shop.purpose
+
         callAddShopApi(addShopData, shop.shopImageLocalPath, shop.doc_degree, billing)
         //}
     }
@@ -837,7 +842,15 @@ class AddBillingFragment : BaseFragment(), View.OnClickListener {
                 shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
             else
                 shopDurationData.approximate_1st_billing_value = ""
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
             shopDataList.add(shopDurationData)
         }
         else {
@@ -920,7 +933,15 @@ class AddBillingFragment : BaseFragment(), View.OnClickListener {
                     shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
                 else
                     shopDurationData.approximate_1st_billing_value = ""
-
+                //duration garbage fix
+                try{
+                    if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                    {
+                        shopDurationData.spent_duration="00:00:10"
+                    }
+                }catch (ex:Exception){
+                    shopDurationData.spent_duration="00:00:10"
+                }
                 shopDataList.add(shopDurationData)
             }
         }

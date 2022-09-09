@@ -1,25 +1,43 @@
 package com.duravit
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.NotificationManager
 import android.app.Service
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.location.LocationManager
 import android.os.*
 import android.provider.Settings
+import android.text.TextUtils
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.duravit.Customdialog.CustomDialog
 import com.duravit.Customdialog.OnDialogCustomClickListener
+import com.duravit.app.AlarmReceiver
+import com.duravit.app.AppDatabase
 import com.duravit.app.Pref
+import com.duravit.app.domain.GpsStatusEntity
+import com.duravit.app.domain.PerformanceEntity
+import com.duravit.app.uiaction.DisplayAlert
 import com.duravit.app.utils.AppUtils
 import com.duravit.app.utils.FTStorageUtils
+import com.duravit.app.utils.PermissionUtils
 import com.duravit.features.dashboard.presentation.DashboardActivity
 import com.duravit.features.location.LocationFuzedService
+import com.duravit.features.location.LocationJobService
+import com.duravit.features.location.LocationWizard
 import com.duravit.features.powerSavingSettings.PowerSavingSettingsActivity
 import com.duravit.mappackage.SendBrod
 import com.elvishew.xlog.XLog
+import kotlinx.android.synthetic.main.activity_splash.*
+import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.system.exitProcess
 
 class MonitorService:Service() {
     private val monitorNotiID = 201
@@ -66,6 +84,9 @@ class MonitorService:Service() {
     }
 
     fun serviceStatusActionable(){
+
+        XLog.d("MonitorService running : Time :" + AppUtils.getCurrentDateTime())
+
         Log.e("abc", "startabc" )
         monitorBroadcast=MonitorBroadcast()
 
@@ -91,10 +112,17 @@ class MonitorService:Service() {
                 }, 500)
 
                 powerSaver=true
+
+                calculategpsStatus(false)
                 //sendGPSOffBroadcast()
             }else{
-                Log.e("pww", "Power Save Mode OFF" )
-                XLog.d("pww : Power Save Mode OFF" + " Time :" + AppUtils.getCurrentDateTime())
+                //Log.e("pww", "Power Save Mode OFF" )
+                //XLog.d("pww : Power Save Mode OFF" + " Time :" + AppUtils.getCurrentDateTime())
+
+                if(powerSaver){
+                    calculategpsStatus(true)
+                }
+
 
                 powerMode = "Power Save Mode OFF"
 
@@ -137,8 +165,8 @@ class MonitorService:Service() {
             }else{
 
                 println("pww - Power Save Mode OFF xm")
-                Log.e("pww", "Power Save Mode OFF xm" )
-                XLog.d("pww : Power Save Mode OFF xm" + " Time :" + AppUtils.getCurrentDateTime())
+               // Log.e("pww", "Power Save Mode OFF xm" )
+                //XLog.d("pww : Power Save Mode OFF xm" + " Time :" + AppUtils.getCurrentDateTime())
 
 
                 powerMode = "Power Save Mode OFF"
@@ -154,14 +182,17 @@ class MonitorService:Service() {
 
         if(shouldShopActivityUpdate()){
             if (FTStorageUtils.isMyServiceRunning(LocationFuzedService::class.java, this)) {
-                XLog.d("MonitorService LocationFuzedService : " + "true" + "," + " Time :" + AppUtils.getCurrentDateTime())
-                XLog.d("MonitorService Power Save Mode Status : " + powerMode + "," + " Time :" + AppUtils.getCurrentDateTime())
+                XLog.d("MonitorService LocationFuzedService : " + "trueee" + "," + " Time :" + AppUtils.getCurrentDateTime())
+                //XLog.d("MonitorService Power Save Mode Status : " + powerMode + "," + " Time :" + AppUtils.getCurrentDateTime())
                 /*if(powerSaver){
                     sendGPSOffBroadcast()
                 }else{
                     cancelGpsBroadcast()
                 }*/
             }else{
+                if (!FTStorageUtils.isMyServiceRunning(LocationFuzedService::class.java, this)) {
+                    restartLocationService()
+                }
                 XLog.d("MonitorService LocationFuzedService : " + "false" + "," + " Time :" + AppUtils.getCurrentDateTime())
                 XLog.d("MonitorService  Power Save Mode Status : " + powerMode + "," + " Time :" + AppUtils.getCurrentDateTime())
                 XLog.d("Monitor Service Stopped" + "" + "," + " Time :" + AppUtils.getCurrentDateTime())
@@ -252,7 +283,7 @@ class MonitorService:Service() {
 
 
     fun shouldShopActivityUpdate(): Boolean {
-        return if (Math.abs(System.currentTimeMillis() - Pref.prevShopActivityTimeStampMonitorService) > 20000) {
+        return if (Math.abs(System.currentTimeMillis() - Pref.prevShopActivityTimeStampMonitorService) > 10000) {
             Pref.prevShopActivityTimeStampMonitorService = System.currentTimeMillis()
             true
             //server timestamp is within 5 minutes of current system time
@@ -260,6 +291,136 @@ class MonitorService:Service() {
             false
         }
     }
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    fun restartLocationService() {
+        try {
+            if(Pref.IsLeavePressed== true && Pref.IsLeaveGPSTrack == false){
+                return
+            }
+            val serviceLauncher = Intent(this, LocationFuzedService::class.java)
+            if (Pref.user_id != null && Pref.user_id!!.isNotEmpty()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val jobScheduler = getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+                    val componentName = ComponentName(this, LocationJobService::class.java)
+                    val jobInfo = JobInfo.Builder(12, componentName)
+                        //.setRequiresCharging(true)
+                        .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                        //.setRequiresDeviceIdle(true)
+                        .setOverrideDeadline(1000)
+                        .build()
 
+                    val resultCode = jobScheduler.schedule(jobInfo)
+
+                    if (resultCode == JobScheduler.RESULT_SUCCESS) {
+                        XLog.d("===============================From MonitorS LocationFuzedService   Job scheduled (Base Activity) " + AppUtils.getCurrentDateTime() + "============================")
+                    } else {
+                        XLog.d("=====================From MonitorS LocationFuzedService Job not scheduled (Base Activity) " + AppUtils.getCurrentDateTime() + "====================================")
+                    }
+                } else
+                    startService(serviceLauncher)
+            } else {
+                /*stopService(serviceLauncher)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val jobScheduler = getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
+                    jobScheduler.cancelAll()
+                    XLog.d("===============================From MonitorS LocationFuzedService Job scheduler cancel (Base Activity)" + AppUtils.getCurrentDateTime() + "============================")
+                }
+
+                AlarmReceiver.stopServiceAlarm(this, 123)
+                XLog.d("===========From MonitorS LocationFuzedService Service alarm is stopped (Base Activity)================")*/
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+
+    private val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    private fun calculategpsStatus(gpsStatus: Boolean) {
+
+        if (!AppUtils.isOnReceived) {
+            XLog.e("First time airplane off detect working")
+            AppUtils.isOnReceived = true
+
+            if (!gpsStatus) {
+                //Toast.makeText(context, "GPS is disabled!", Toast.LENGTH_LONG).show()
+                if (!AppUtils.isGpsOffCalled) {
+                    AppUtils.isGpsOffCalled = true
+                    Log.e("GpsLocationReceiver", "===========GPS is disabled=============")
+                    AppUtils.gpsOffTime = dateFormat.parse(/*"18:14:55"*/AppUtils.getCurrentTime()).time
+                    AppUtils.gpsDisabledTime = AppUtils.getCurrentTimeWithMeredian()
+                    Log.e("GpsLocationReceiver", "gpsOffTime------------------> " + AppUtils.getTimeInHourMinuteFormat(AppUtils.gpsOffTime))
+
+                    /*val local_intent = Intent()
+                    local_intent.action = AppUtils.gpsDisabledAction
+                    sendBroadcast(local_intent)*/
+                }
+            } else {
+                if (AppUtils.isGpsOffCalled) {
+                    AppUtils.isGpsOffCalled = false
+                    Log.e("GpsLocationReceiver", "===========GPS is enabled================")
+                    AppUtils.gpsOnTime = dateFormat.parse(AppUtils.getCurrentTime()).time
+                    AppUtils.gpsEnabledTime = AppUtils.getCurrentTimeWithMeredian()
+                    Log.e("GpsLocationReceiver", "gpsOnTime---------------------> " + AppUtils.getTimeInHourMinuteFormat(AppUtils.gpsOnTime))
+
+                    /*val local_intent = Intent()
+                    local_intent.action = AppUtils.gpsEnabledAction
+                    sendBroadcast(local_intent)*/
+                }
+            }
+
+            val performance = AppDatabase.getDBInstance()!!.performanceDao().getTodaysData(AppUtils.getCurrentDateForShopActi())
+            if (performance == null) {
+                if ((AppUtils.gpsOnTime - AppUtils.gpsOffTime) > 0) {
+                    val performanceEntity = PerformanceEntity()
+                    performanceEntity.date = AppUtils.getCurrentDateForShopActi()
+                    performanceEntity.gps_off_duration = (AppUtils.gpsOnTime - AppUtils.gpsOffTime).toString()
+                    Log.e("GpsLocationReceiver", "duration----------------> " + AppUtils.getTimeInHourMinuteFormat(AppUtils.gpsOnTime - AppUtils.gpsOffTime))
+                    AppDatabase.getDBInstance()!!.performanceDao().insert(performanceEntity)
+                    saveGPSStatus((AppUtils.gpsOnTime - AppUtils.gpsOffTime).toString())
+                    AppUtils.gpsOnTime = 0
+                    AppUtils.gpsOffTime = 0
+                }
+            } else {
+                if (TextUtils.isEmpty(performance.gps_off_duration)) {
+                    if ((AppUtils.gpsOnTime - AppUtils.gpsOffTime) > 0) {
+                        AppDatabase.getDBInstance()!!.performanceDao().updateGPSoffDuration((AppUtils.gpsOnTime - AppUtils.gpsOffTime).toString(), AppUtils.getCurrentDateForShopActi())
+                        Log.e("GpsLocationReceiver", "duration----------> " + AppUtils.getTimeInHourMinuteFormat(AppUtils.gpsOnTime - AppUtils.gpsOffTime))
+                        saveGPSStatus((AppUtils.gpsOnTime - AppUtils.gpsOffTime).toString())
+                        AppUtils.gpsOnTime = 0
+                        AppUtils.gpsOffTime = 0
+                    }
+                } else {
+                    if ((AppUtils.gpsOnTime - AppUtils.gpsOffTime) > 0) {
+                        val duration = AppUtils.gpsOnTime - AppUtils.gpsOffTime
+                        val totalDuration = performance.gps_off_duration?.toLong()!! + duration
+                        Log.e("GpsLocationReceiver", "duration-------> " + AppUtils.getTimeInHourMinuteFormat(totalDuration))
+                        AppDatabase.getDBInstance()!!.performanceDao().updateGPSoffDuration(totalDuration.toString(), AppUtils.getCurrentDateForShopActi())
+                        saveGPSStatus(duration.toString())
+                        AppUtils.gpsOnTime = 0
+                        AppUtils.gpsOffTime = 0
+                    }
+                }
+            }
+            AppUtils.isOnReceived = false
+        }
+    }
+
+    private fun saveGPSStatus(duration: String) {
+        val gpsStatus = GpsStatusEntity()
+        val random = Random()
+        val m = random.nextInt(9999 - 1000) + 1000
+
+        gpsStatus.gps_id = Pref.user_id + "_" + m + m
+        gpsStatus.date = AppUtils.getCurrentDateForShopActi()
+        gpsStatus.gps_off_time = AppUtils.gpsDisabledTime
+        gpsStatus.gps_on_time = AppUtils.gpsEnabledTime
+        gpsStatus.duration = duration
+        AppDatabase.getDBInstance()!!.gpsStatusDao().insert(gpsStatus)
+        AppUtils.gpsDisabledTime = ""
+        AppUtils.gpsEnabledTime = ""
+        AppUtils.isGpsReceiverCalled = false
+    }
 
 }

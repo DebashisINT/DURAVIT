@@ -25,12 +25,14 @@ class WorkerService(context: Context,workParm:WorkerParameters):Worker(context,w
 
     override fun doWork(): Result {
         println("tag_ worker ${AppUtils.contx.toString()}")
-        Log.e("Worker doWork"," doWork")
+        XLog.d("Worker doWork")
         try{
             if(AppUtils.contx!=null){
                 if (!FTStorageUtils.isMyServiceRunning(LocationFuzedService::class.java, AppUtils.contx)) {
-                    Log.e("Worker doWork"," LocationFuzedService called")
+                    XLog.d("Worker doWork LocationFuzedService called")
                     serviceStatusActionable()
+                }else{
+                    XLog.d("Worker doWork LocationFuzedService running")
                 }
             }
         }catch (ex:Exception){

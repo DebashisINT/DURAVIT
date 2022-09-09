@@ -21,21 +21,14 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.text.TextUtils
-import android.transition.Slide
-import android.transition.TransitionManager
 import android.util.Log
-import android.view.Gravity
 import android.view.View
 import android.view.animation.TranslateAnimation
 import android.widget.CheckBox
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.appcompat.widget.SwitchCompat
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.FileProvider
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.duravit.CustomStatic
@@ -59,8 +52,9 @@ import com.duravit.features.addshop.model.*
 import com.duravit.features.addshop.model.TypeListResponseModel
 import com.duravit.features.addshop.model.assigntoddlist.AssignToDDListResponseModel
 import com.duravit.features.addshop.model.assigntopplist.AssignToPPListResponseModel
-import com.duravit.features.addshop.presentation.AdapterQuestionList
 import com.duravit.features.alarm.model.AlarmData
+import com.duravit.features.beatCustom.BeatGetStatusModel
+import com.duravit.features.beatCustom.api.GetBeatRegProvider
 import com.duravit.features.billing.api.billinglistapi.BillingListRepoProvider
 import com.duravit.features.billing.model.BillingListResponseModel
 import com.duravit.features.commondialog.presentation.CommonDialog
@@ -108,11 +102,9 @@ import com.duravit.features.newcollection.newcollectionlistapi.NewCollectionList
 import com.duravit.features.orderList.api.neworderlistapi.NewOrderListRepoProvider
 import com.duravit.features.orderList.model.NewOrderListResponseModel
 import com.duravit.features.orderList.model.ReturnListResponseModel
-import com.duravit.features.photoReg.model.GetUserListResponse
 import com.duravit.features.quotation.api.QuotationRepoProvider
 import com.duravit.features.quotation.model.BSListResponseModel
 import com.duravit.features.quotation.model.QuotationListResponseModel
-import com.duravit.features.shopFeedbackHistory.ShopFeedbackHisFrag
 import com.duravit.features.stock.api.StockRepositoryProvider
 import com.duravit.features.stock.model.NewStockListResponseModel
 import com.duravit.features.stockAddCurrentStock.api.ShopAddStockProvider
@@ -125,7 +117,6 @@ import com.duravit.features.timesheet.api.TimeSheetRepoProvider
 import com.duravit.features.timesheet.model.TimeSheetConfigResponseModel
 import com.duravit.features.timesheet.model.TimeSheetDropDownResponseModel
 import com.duravit.features.viewAllOrder.api.OrderDetailsListRepoProvider
-import com.duravit.features.viewAllOrder.interf.QaOnCLick
 import com.duravit.features.viewAllOrder.model.NewOrderDataModel
 import com.duravit.features.viewPPDDStock.api.stocklist.StockListRepoProvider
 import com.duravit.features.viewPPDDStock.model.stocklist.StockListDataModel
@@ -140,12 +131,13 @@ import com.themechangeapp.pickimage.PermissionHelper
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_login_new.*
+import net.alexandroid.gps.GpsStatusDetector
 import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import java.io.*
+import java.nio.channels.FileChannel
 import java.util.*
 import java.util.concurrent.ExecutionException
-import kotlin.collections.ArrayList
 
 
 /**Permission NameDISABLE KEYGUARD Status
@@ -480,6 +472,48 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
 
                                 if (configResponse.NewQuotationShowTermsAndCondition != null)
                                     Pref.NewQuotationShowTermsAndCondition = configResponse.NewQuotationShowTermsAndCondition!!
+
+                                if (configResponse.IsCollectionEntryConsiderOrderOrInvoice != null)
+                                    Pref.IsCollectionEntryConsiderOrderOrInvoice = configResponse.IsCollectionEntryConsiderOrderOrInvoice!!
+
+                                if (!TextUtils.isEmpty(configResponse.contactNameText))
+                                    Pref.contactNameText = configResponse.contactNameText
+
+                                if (!TextUtils.isEmpty(configResponse.contactNumberText))
+                                    Pref.contactNumberText = configResponse.contactNumberText
+
+                                if (!TextUtils.isEmpty(configResponse.emailText))
+                                    Pref.emailText = configResponse.emailText
+
+                                if (!TextUtils.isEmpty(configResponse.dobText))
+                                    Pref.dobText = configResponse.dobText
+
+                                if (!TextUtils.isEmpty(configResponse.dateOfAnniversaryText))
+                                    Pref.dateOfAnniversaryText = configResponse.dateOfAnniversaryText
+
+                                if (configResponse.ShopScreenAftVisitRevisit != null)
+                                    Pref.ShopScreenAftVisitRevisitGlobal = configResponse.ShopScreenAftVisitRevisit!!
+
+                                if (configResponse.IsSurveyRequiredforNewParty != null)
+                                    Pref.IsSurveyRequiredforNewParty = configResponse.IsSurveyRequiredforNewParty!!
+
+                                if (configResponse.IsSurveyRequiredforDealer != null)
+                                    Pref.IsSurveyRequiredforDealer = configResponse.IsSurveyRequiredforDealer!!
+
+                                 if (configResponse.IsShowHomeLocationMap != null)
+                                    Pref.IsShowHomeLocationMapGlobal = configResponse.IsShowHomeLocationMap!!
+
+                                if (configResponse.IsBeatRouteAvailableinAttendance != null)
+                                    Pref.IsBeatRouteAvailableinAttendance = configResponse.IsBeatRouteAvailableinAttendance!!
+
+                                if (configResponse.IsAllBeatAvailable != null)
+                                    Pref.IsAllBeatAvailableforParty = configResponse.IsAllBeatAvailable!!
+
+                                if (configResponse.BeatText != null)
+                                    Pref.beatText=configResponse.BeatText!!
+
+                                if (configResponse.TodaysTaskText != null)
+                                    Pref.TodaysTaskText=configResponse.TodaysTaskText!!
 
 
                                 /*if (configResponse.willShowUpdateDayPlan != null)
@@ -3496,7 +3530,18 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
                 simpleDialog.setContentView(R.layout.dialog_settings)
                 val tvappCustomAnydesk = simpleDialog.findViewById(R.id.activity_login_tvappCustomAnydesk) as AppCustomTextView
                 val tvappCustomSharelog = simpleDialog.findViewById(R.id.activity_login_tvappCustomLogs) as AppCustomTextView
+                val tvappDbShare = simpleDialog.findViewById(R.id.activity_login_tvappdbLogs) as AppCustomTextView
 
+                if(Pref.WillRoomDBShareinLogin)
+                    tvappDbShare.visibility = View.VISIBLE
+                else
+                    tvappDbShare.visibility = View.GONE
+
+                tvappDbShare.setOnClickListener {
+                    copyFile()
+                    simpleDialog.dismiss()
+
+                }
                 tvappCustomAnydesk.setOnClickListener {
                     var launchIntent: Intent? = packageManager.getLaunchIntentForPackage("com.anydesk.anydeskandroid")
                     if (launchIntent != null) {
@@ -3546,6 +3591,56 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
             }
         }
     }
+
+    private fun copyFile() {
+        var ppath:String=""
+        try {
+            val sd = Environment.getExternalStorageDirectory()
+            val data = Environment.getDataDirectory()
+            if (sd.canWrite()) {
+                val currentDBPath = getDatabasePath("fts_db").absolutePath
+                val backupDBPath = "fts_db.db"
+                ppath = currentDBPath
+                val currentDB = File(currentDBPath)
+                val backupDB = File(sd, backupDBPath)
+                if (currentDB.exists()) {
+                    val src: FileChannel = FileInputStream(currentDB).getChannel()
+                    val dst: FileChannel = FileOutputStream(backupDB).getChannel()
+                    dst.transferFrom(src, 0, src.size())
+                    src.close()
+                    dst.close()
+                }
+            }
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+
+        openShareDB(ppath)
+
+    }
+    fun openShareDB(dbpath:String) {
+        try {
+            var currentDBPath = dbpath
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R){
+                currentDBPath="/data/user/0/com.duravit/databases/fts_db"
+            }
+            val shareIntent = Intent(Intent.ACTION_SEND)
+            val fileUrl = Uri.parse(File(currentDBPath, "").path);
+            val file = File(fileUrl.path)
+            if (!file.exists()) {
+                return
+            }
+            val uri: Uri = FileProvider.getUriForFile(this, applicationContext.packageName.toString() + ".provider", file)
+            shareIntent.type = "image/*"
+            shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
+            startActivity(Intent.createChooser(shareIntent, "Share log using"));
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toaster.msgLong(this,e.toString())
+        }
+    }
+
+
 
 
     private fun fileManagePermi() {
@@ -3686,11 +3781,12 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
                             isApiInitiated = false
 
                         }, { error ->
+                            XLog.d(" Login callNewSettingsApi : error : " +error.message.toString())
                             isApiInitiated = false
                             error.printStackTrace()
                             progress_wheel.stopSpinning()
                             login_TV.isEnabled = true
-                            showSnackMessage(getString(R.string.something_went_wrong))
+                            showSnackMessage(getString(R.string.something_went_wrong_new))
                         })
         )
     }
@@ -3753,6 +3849,18 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
         if (!AppUtils.isLocationEnabled(this)) {
             showSnackMessage(getString(R.string.alert_nolocation))
             login_TV.isEnabled = true
+
+            //new gps call
+            var mGpsStatusDetector: GpsStatusDetector? = null
+            val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                mGpsStatusDetector = GpsStatusDetector(this)
+                val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    mGpsStatusDetector?.checkGpsStatus()
+                }
+            }
+
             return
         }
         isApiInitiated = true
@@ -3996,7 +4104,7 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
                                     }
                                 }
 
-                                XLog.d("LoginApiResponse : " + "\n" + "Username :" + Pref.user_name + ", IMEI :" + Pref.imei + ", Time :" + AppUtils.getCurrentDateTime() + ", Version :" + AppUtils.getVersionName(this))
+                                XLog.d("LoginApiResponse : " + "\n" + "Username :" + Pref.user_name+ ", IMEI :" + Pref.imei + ", Time :" + AppUtils.getCurrentDateTime() + ", Version :" + AppUtils.getVersionName(this))
 
                             }
                             else if (loginResponse.status == "220") {
@@ -4017,8 +4125,10 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
                                     }catch (ex:Exception){
                                         realName=""
                                     }
+//                                    openDialogPopupIMEI("Hi! $realName ($username)","Current Login ID has already been used from another mobile device. You are not allowed to " +
+//                                            "login from your current device due to IMEI BLOCKED! Please talk to Admin.")
 
-                                    openDialogPopupIMEI("Hi! $realName ($username)","Current Login ID has already been used from another mobile device. You are not allowed to " +
+                                    openDialogPopupIMEI("Hi! $realName ($username)","The Current Device is already in use by another User ($realName). You are not allowed to " +
                                             "login from your current device due to IMEI BLOCKED! Please talk to Admin.")
                                 }else{
                                     openDialogPopup(loginResponse.message!!)
@@ -4054,6 +4164,8 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
         Pref.login_date_time = AppUtils.getCurrentDateTime()
         Pref.login_date = AppUtils.getCurrentDateChanged()
         Pref.isFieldWorkVisible = loginResponse.user_details?.isFieldWorkVisible!!
+
+        XLog.d("Login User ID " + "User ID :" + Pref.user_id)
 
         startService(Intent(this, MemberShopListIntentService::class.java))
 
@@ -4179,6 +4291,10 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
             ex.printStackTrace()
             Pref.OnLeaveForTodayStatus=""
         }
+
+        Pref.NotiCountFlag = false
+        Pref.IsPendingColl = false
+        Pref.IsZeroOrder = false
 
         progress_wheel.stopSpinning()
 
@@ -4359,6 +4475,8 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
 
 
     private fun getProductList(date: String?) {
+        //Hardcoded for EuroBond
+        //if(Pref.isOrderShow || true){
         if(Pref.isOrderShow){
             XLog.d("API_Optimization getProductList Login : enable " +  "Time : " + AppUtils.getCurrentDateTime() + ", USER :" + Pref.user_name )
 
@@ -5509,30 +5627,157 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
                                                     if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
                                                         Pref.IsFeedbackHistoryActivated = response.getconfigure?.get(i)?.Value == "1"
                                                     }
-                                            }
-
-                                            else if (response.getconfigure?.get(i)?.Key.equals("IsAutoLeadActivityDateTime", ignoreCase = true)) {
+                                            } else if (response.getconfigure?.get(i)?.Key.equals("IsAutoLeadActivityDateTime", ignoreCase = true)) {
                                                 Pref.IsAutoLeadActivityDateTime = response.getconfigure!![i].Value == "1"
                                                 if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
                                                     Pref.IsAutoLeadActivityDateTime = response.getconfigure?.get(i)?.Value == "1"
                                                 }
-                                            }
-                                            else if (response.getconfigure?.get(i)?.Key.equals("LogoutWithLogFile", ignoreCase = true)) {
+                                            }else if (response.getconfigure?.get(i)?.Key.equals("LogoutWithLogFile", ignoreCase = true)) {
                                                 Pref.LogoutWithLogFile = response.getconfigure!![i].Value == "1"
                                                 if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
                                                     Pref.LogoutWithLogFile = response.getconfigure?.get(i)?.Value == "1"
                                                 }
                                             }
-                                            else if (response.getconfigure?.get(i)?.Key.equals("IgnoreNumberCheckwhileShopCreation", ignoreCase = true)) {
-                                                Pref.IgnoreNumberCheckwhileShopCreation = response.getconfigure!![i].Value == "1"
+
+                                            else if (response.getconfigure?.get(i)?.Key.equals("ShowCollectionAlert", ignoreCase = true)) {
+                                                Pref.ShowCollectionAlert = response.getconfigure!![i].Value == "1"
                                                 if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
-                                                    Pref.IgnoreNumberCheckwhileShopCreation = response.getconfigure?.get(i)?.Value == "1"
+                                                    Pref.ShowCollectionAlert = response.getconfigure?.get(i)?.Value == "1"
                                                 }
+                                            }
+                                            else if (response.getconfigure?.get(i)?.Key.equals("ShowZeroCollectioninAlert", ignoreCase = true)) {
+                                                Pref.ShowZeroCollectioninAlert = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.ShowZeroCollectioninAlert = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+
+                                             else if (response.getconfigure?.get(i)?.Key.equals("IsCollectionOrderWise", ignoreCase = true)) {
+                                                Pref.IsCollectionOrderWise = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsCollectionOrderWise = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+                                              else if (response.getconfigure?.get(i)?.Key.equals("ShowCollectionOnlywithInvoiceDetails", ignoreCase = true)) {
+                                                Pref.ShowCollectionOnlywithInvoiceDetails = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.ShowCollectionOnlywithInvoiceDetails = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure?.get(i)?.Key.equals("IsPendingCollectionRequiredUnderTeam", ignoreCase = true)) {
+                                                Pref.IsPendingCollectionRequiredUnderTeam = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsPendingCollectionRequiredUnderTeam = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure?.get(i)?.Key.equals("IsShowRepeatOrderinNotification", ignoreCase = true)) {
+                                                Pref.IsShowRepeatOrderinNotification = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsShowRepeatOrderinNotification = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+                                            else if (response.getconfigure?.get(i)?.Key.equals("IsShowRepeatOrdersNotificationinTeam", ignoreCase = true)) {
+                                                Pref.IsShowRepeatOrdersNotificationinTeam = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsShowRepeatOrdersNotificationinTeam = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure?.get(i)?.Key.equals("AutoDDSelect", ignoreCase = true)) {
+                                                Pref.AutoDDSelect = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.AutoDDSelect = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+                                            else if (response.getconfigure?.get(i)?.Key.equals("ShowPurposeInShopVisit", ignoreCase = true)) {
+                                                Pref.ShowPurposeInShopVisit = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.ShowPurposeInShopVisit = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure?.get(i)?.Key.equals("GPSAlertwithVibration", ignoreCase = true)) {
+                                                Pref.GPSAlertwithVibration = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.GPSAlertwithVibration = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+                                            else if (response.getconfigure?.get(i)?.Key.equals("WillRoomDBShareinLogin", ignoreCase = true)) {
+                                                Pref.WillRoomDBShareinLogin = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.WillRoomDBShareinLogin = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+                                            else if (response.getconfigure?.get(i)?.Key.equals("ShopScreenAftVisitRevisit", ignoreCase = true)) {
+                                                Pref.ShopScreenAftVisitRevisit = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.ShopScreenAftVisitRevisit = response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }else if (response.getconfigure!![i].Key.equals("IsShowNearByTeam", ignoreCase = true)) {
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsShowNearByTeam = response.getconfigure!![i].Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure!![i].Key.equals("IsFeedbackAvailableInShop", ignoreCase = true)) {
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsFeedbackAvailableInShop = response.getconfigure!![i].Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure!![i].Key.equals("IsAllowBreakageTracking", ignoreCase = true)) {
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsAllowBreakageTracking = response.getconfigure!![i].Value == "1"
+                                                }
+                                            }
+                                            else if (response.getconfigure!![i].Key.equals("IsAllowBreakageTrackingunderTeam", ignoreCase = true)) {
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsAllowBreakageTrackingunderTeam = response.getconfigure!![i].Value == "1"
+                                                }
+                                            }
+                                            else if (response.getconfigure!![i].Key.equals("IsRateEnabledforNewOrderScreenwithSize", ignoreCase = true)) {
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsRateEnabledforNewOrderScreenwithSize = response.getconfigure!![i].Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure!![i].Key.equals("IgnoreNumberCheckwhileShopCreation", ignoreCase = true)) {
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IgnoreNumberCheckwhileShopCreation = response.getconfigure!![i].Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure!![i].Key.equals("Showdistributorwisepartyorderreport", ignoreCase = true)) {
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.Showdistributorwisepartyorderreport = response.getconfigure!![i].Value == "1"
+                                                }
+                                            }
+
+                                            else if (response.getconfigure?.get(i)?.Key.equals("IsShowHomeLocationMap", ignoreCase = true)) {
+                                                Pref.IsShowHomeLocationMap = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsShowHomeLocationMap =
+                                                        response.getconfigure?.get(i)?.Value == "1"
+                                                }
+                                            }
+                                            else if (response.getconfigure?.get(i)?.Key.equals("ShowAttednaceClearmenu", ignoreCase = true)) {
+                                                Pref.ShowAttednaceClearmenu = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.ShowAttednaceClearmenu= response.getconfigure?.get(i)?.Value == "1"
+                                                }
+
+                                            }else if (response.getconfigure?.get(i)?.Key.equals("IsBeatRouteReportAvailableinTeam", ignoreCase = true)) {
+                                                Pref.IsBeatRouteReportAvailableinTeam = response.getconfigure!![i].Value == "1"
+                                                if (!TextUtils.isEmpty(response.getconfigure?.get(i)?.Value)) {
+                                                    Pref.IsBeatRouteReportAvailableinTeam= response.getconfigure?.get(i)?.Value == "1"
+                                                }
+
                                             }
 
 
 
-                                          
 
 
                                             /*else if (response.getconfigure?.get(i)?.Key.equals("isFingerPrintMandatoryForAttendance", ignoreCase = true)) {
@@ -5834,6 +6079,9 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
             /*10-2-2022*/
             shopObj.alternateNoForCustomer=shop_list[i].alternateNoForCustomer
             shopObj.whatsappNoForCustomer=shop_list[i].whatsappNoForCustomer
+            shopObj.isShopDuplicate=shop_list[i].isShopDuplicate
+
+            shopObj.purpose=shop_list[i].purpose
 
 
             list.add(shopObj)
@@ -6498,7 +6746,9 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
         val intent = Intent(context, NewAlarmReceiver::class.java)
         intent.putExtra("request_code", requestCode)
         intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
-        val pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        //val pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        // FLAG_IMMUTABLE update
+        val pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val calendar = Calendar.getInstance(Locale.ENGLISH)
 
@@ -7073,27 +7323,52 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
                                         }
                                         uiThread {
                                             println("xTag_ finish")
-                                            gotoHomeActivity()
+                                            getBeatStatus()
                                         }
                                     }
                                 }
                             } else {
-                                gotoHomeActivity()
+                                getBeatStatus()
 
                             }
 
                         }, { error ->
                             error.localizedMessage
-                            gotoHomeActivity()
+                            getBeatStatus()
                         })
                 )
             }else{
                 XLog.d("getShopFeedback : gotoHomeActivity")
-                gotoHomeActivity()
+                getBeatStatus()
             }
-
-
         }catch (ex:Exception){
+            ex.printStackTrace()
+            getBeatStatus()
+        }
+    }
+
+    fun getBeatStatus(){
+        try{
+            Pref.SelectedBeatIDFromAttend="-1"
+            val repository = GetBeatRegProvider.provideSaveButton()
+            BaseActivity.compositeDisposable.add(
+                repository.getBeat(Pref.user_id!!,AppUtils.getCurrentDateyymmdd(),Pref.session_token!!)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeOn(Schedulers.io())
+                    .subscribe({ result ->
+                        val viewResult = result as BeatGetStatusModel
+                        if (viewResult!!.status == NetworkConstant.SUCCESS) {
+                            Pref.SelectedBeatIDFromAttend = viewResult.beat_id?.toString()!!
+                            gotoHomeActivity()
+                        } else {
+                            gotoHomeActivity()
+                        }
+                    }, { error ->
+                        gotoHomeActivity()
+                    })
+            )
+        }
+        catch (ex:Exception){
             ex.printStackTrace()
             gotoHomeActivity()
         }

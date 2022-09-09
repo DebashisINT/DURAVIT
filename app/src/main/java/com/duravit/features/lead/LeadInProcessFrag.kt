@@ -19,6 +19,7 @@ import com.duravit.app.NetworkConstant
 import com.duravit.app.Pref
 import com.duravit.app.SearchListener
 import com.duravit.app.types.FragType
+import com.duravit.app.uiaction.IntentActionable
 import com.duravit.app.utils.AppUtils
 import com.duravit.app.utils.FTStorageUtils
 import com.duravit.base.presentation.BaseActivity
@@ -160,6 +161,7 @@ class LeadInProcessFrag : BaseFragment(),  DatePickerDialog.OnDateSetListener,Vi
             R.id.frag_lead_pending_spinnerType->{
                 var List:ArrayList<String> = ArrayList()
                 List.add("IndiaMart")
+                List.add("IndiaMart (ARCHER)")
                 List.add("MccoyMart")
                 List.add("Website")
                 List.add("Direct Call")
@@ -287,6 +289,13 @@ class LeadInProcessFrag : BaseFragment(),  DatePickerDialog.OnDateSetListener,Vi
         adapter = CustomerLeadAdapter(mContext,tempList,object : CustomerLeadAdapter.OnPendingLeadClickListener{
             override fun onActivityClick(obj: CustomerLeadList) {
                 doActivity(obj)
+            }
+            override fun onPhoneClick(obj: CustomerLeadList) {
+                if(obj.mobile_no.length>1)
+                {
+                    var phoneNo=obj.mobile_no
+                    IntentActionable.initiatePhoneCall(mContext, phoneNo)
+                }
             }
         }, {
             it

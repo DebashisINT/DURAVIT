@@ -36,6 +36,8 @@ import kotlinx.android.synthetic.main.inflate_nearby_shops.view.order_RL
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.order_amt_p_TV
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.order_view
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.shop_IV
+import kotlinx.android.synthetic.main.inflate_nearby_shops.view.shop_damage_ll
+import kotlinx.android.synthetic.main.inflate_nearby_shops.view.shop_damage_view
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.shop_image_IV
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.shop_list_LL
 import kotlinx.android.synthetic.main.inflate_nearby_shops.view.total_v_TV
@@ -166,7 +168,6 @@ class LocalShopsListAdapter(context: Context, list: List<AddShopDBModelEntity>, 
 
             if (list[adapterPosition].visited) {
                 itemView.visit_icon.visibility = View.VISIBLE
-//                itemView.visit_TV.text = "Revisited Today"
                 if(Pref.isMultipleVisitEnable){
                     itemView.visit_TV.text = "Revisit Again"
                     itemView.visit_TV.setTextColor(ContextCompat.getColor(context, R.color.color_custom_red))
@@ -280,6 +281,18 @@ class LocalShopsListAdapter(context: Context, list: List<AddShopDBModelEntity>, 
             }
 
 
+            if (Pref.IsAllowBreakageTracking) {
+                itemView.shop_damage_ll.visibility = View.VISIBLE
+                itemView.shop_damage_view.visibility = View.VISIBLE
+            }
+            else {
+                itemView.shop_damage_ll.visibility = View.GONE
+                itemView.shop_damage_view.visibility = View.GONE
+            }
+
+            itemView.shop_damage_ll.setOnClickListener{
+                listener.onDamageClick(list[adapterPosition].shop_id)
+            }
             /*21-12-2021*/
             if(Pref.IsReturnEnableforParty) {
                 if(Pref.IsReturnActivatedforPP){
@@ -399,6 +412,33 @@ class LocalShopsListAdapter(context: Context, list: List<AddShopDBModelEntity>, 
             } else {
                 itemView.add_order_ll.visibility = View.GONE
                 itemView.direction_view.visibility = View.GONE
+            }
+
+            /*if(Pref.IsSurveyRequiredforDealer && list[adapterPosition].type!!.equals("1")) {
+                itemView.shop_rv_survey_ll.visibility = View.VISIBLE
+                itemView.shop_rv_survey_view.visibility = View.VISIBLE
+            }
+            else if(Pref.IsSurveyRequiredforNewParty && list[adapterPosition].type!!.equals("3")){
+                itemView.shop_rv_survey_ll.visibility = View.VISIBLE
+                itemView.shop_rv_survey_view.visibility = View.VISIBLE
+            }
+            else{
+                itemView.shop_rv_survey_ll.visibility = View.GONE
+                itemView.shop_rv_survey_view.visibility = View.GONE
+            }
+
+            itemView.shop_rv_survey_ll.setOnClickListener{
+                listener.onSurveyClick(list[adapterPosition].shop_id)
+            }*/
+
+            if(Pref.IsBeatRouteAvailableinAttendance){
+                if(list[adapterPosition].beat_id.equals(Pref.SelectedBeatIDFromAttend)){
+                    itemView.rl_revisit_nearby_shop.visibility=View.VISIBLE
+                    itemView.visit_rl.isEnabled=true
+                }else{
+                    itemView.rl_revisit_nearby_shop.visibility=View.GONE
+                    itemView.visit_rl.isEnabled=false
+                }
             }
 
 

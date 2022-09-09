@@ -44,4 +44,15 @@ interface BillingDao {
 
     @Query("DELETE FROM " + AppConstant.BILLING_TABLE)
     fun deleteAll()
+
+    @Query("select SUM(invoice_amount) from billing_list where order_id=:order_id ")
+    fun getInvoiceSumAmt(order_id: String): String
+
+
+
+    @Query("update billing_list set  invoice_amount=:invoice_amount where bill_id=:bill_id ")
+    fun updateAmt(invoice_amount:String,bill_id: String)
+
+    @Query("SELECT * FROM " + AppConstant.BILLING_TABLE + " where bill_id=:bill_id")
+    fun getSingleBillData(bill_id: String): BillingEntity
 }

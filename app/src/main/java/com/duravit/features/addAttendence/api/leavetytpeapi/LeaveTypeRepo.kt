@@ -5,6 +5,7 @@ import com.duravit.base.BaseResponse
 import com.duravit.features.addAttendence.model.ApprovalLeaveResponseModel
 import com.duravit.features.addAttendence.model.LeaveTypeResponseModel
 import com.duravit.features.leaveapplynew.model.ApprovalRejectReqModel
+import com.duravit.features.leaveapplynew.model.clearAttendanceonRejectReqModelRejectReqModel
 import io.reactivex.Observable
 
 /**
@@ -22,5 +23,9 @@ class LeaveTypeRepo(val apiService: LeaveTypeApi) {
 
     fun postApprovalRejectclick(ApprovalRejectReqModel: ApprovalRejectReqModel): Observable<BaseResponse> {
         return apiService.postApprovalRejectclick(ApprovalRejectReqModel)
+    }
+
+    fun clearAttendanceonRejectclick(clearAttendanceonRejectReModel: clearAttendanceonRejectReqModelRejectReqModel): Observable<BaseResponse> {
+        return apiService.clearAttendanceonRejectclick(clearAttendanceonRejectReModel)
     }
 }

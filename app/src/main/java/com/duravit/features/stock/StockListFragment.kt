@@ -491,6 +491,9 @@ class StockListFragment : BaseFragment(), View.OnClickListener {
         addShopData.alternateNoForCustomer = mAddShopDBModelEntity.alternateNoForCustomer
         addShopData.whatsappNoForCustomer = mAddShopDBModelEntity.whatsappNoForCustomer
 
+        // duplicate shop api call
+        addShopData.isShopDuplicate=mAddShopDBModelEntity.isShopDuplicate
+
         callAddShopApiForSync(addShopData, mAddShopDBModelEntity.shopImageLocalPath, shop_id, stock_id, amount,
                 currentDateForShopActi, stock_lat, stock_long, mAddShopDBModelEntity.doc_degree)
         //callAddShopApi(addShopData, "")
@@ -799,7 +802,15 @@ class StockListFragment : BaseFragment(), View.OnClickListener {
                 shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
             else
                 shopDurationData.approximate_1st_billing_value = ""
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
             shopDataList.add(shopDurationData)
         }
         else {
@@ -880,7 +891,15 @@ class StockListFragment : BaseFragment(), View.OnClickListener {
                     shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
                 else
                     shopDurationData.approximate_1st_billing_value = ""
-
+                //duration garbage fix
+                try{
+                    if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                    {
+                        shopDurationData.spent_duration="00:00:10"
+                    }
+                }catch (ex:Exception){
+                    shopDurationData.spent_duration="00:00:10"
+                }
                 shopDataList.add(shopDurationData)
             }
         }

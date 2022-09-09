@@ -16,13 +16,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.RecyclerView
 import com.amulyakhare.textdrawable.TextDrawable
 import com.amulyakhare.textdrawable.util.ColorGenerator
 import com.duravit.CustomStatic
 import com.duravit.R
+import com.duravit.app.AppDatabase
 import com.duravit.app.NetworkConstant
+import com.duravit.app.Pref
 import com.duravit.app.types.FragType
 import com.duravit.app.utils.AppUtils
 import com.duravit.app.utils.Toaster
@@ -46,6 +49,8 @@ import com.itextpdf.text.pdf.draw.VerticalPositionMark
 import com.pnikosis.materialishprogress.ProgressWheel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
+import org.jetbrains.anko.doAsync
+import org.jetbrains.anko.uiThread
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -167,6 +172,9 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
                                         no_quot_tv.visibility = View.GONE
                                         addedQuotList.clear()
                                         addedQuotList.addAll(addQuotResult!!.shop_wise_quotation_list!!)
+
+                                        addedQuotList.reverse()
+
                                         setAdapter()
                                     }
 
@@ -194,12 +202,23 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
 
     private fun setAdapter() {
         viewAllQuotRecyclerViewAdapter = ViewAllQuotViewAdapter(mContext, addedQuotList, object : ViewAllQuotViewAdapter.OnClickListener {
-            override fun onView(adapterPosition: Int, QuotId: String) {
-                (mContext as DashboardActivity).loadFragment(FragType.ViewDetailsQuotFragment, true, QuotId)
+            override fun onView(adapterPosition: Int, QuotId: String,DocId: String) {
+                if(QuotId==null || QuotId.equals("")){
+                    (mContext as DashboardActivity).loadFragment(FragType.ViewDetailsQuotFragment, true, "x,$DocId")
+                }
+                else{
+                    (mContext as DashboardActivity).loadFragment(FragType.ViewDetailsQuotFragment, true, "$QuotId,x")
+                }
+
             }
 
             override fun onShare(adapterPosition: Int) {
                 getDtlsBeforePDF(addedQuotList.get(adapterPosition))
+
+            }
+
+            override fun onShowMsg(msg: String) {
+                Toaster.msgShort(mContext,msg)
             }
 
             override fun onDelete(adapterPosition: Int, QuotId: String) {
@@ -299,6 +318,7 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
 
     }
 
+
     @SuppressLint("UseRequireInsteadOfGet")
     private fun saveDataAsPdf(addQuotEditResult: ViewDetailsQuotResponse) {
         var document: Document = Document()
@@ -306,7 +326,7 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
         //val fileName = "QUTO_" +  "_" + time
         var fileName = addQuotEditResult.quotation_number!!.toUpperCase() +  "_" + time
         fileName=fileName.replace("/", "_")
-        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString()+"/QUTO/"
+        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString()+"/duravitApp/QUTO/"
 
         val dir = File(path)
         if (!dir.exists()) {
@@ -314,7 +334,12 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
         }
 
         try{
-            PdfWriter.getInstance(document, FileOutputStream(path + fileName + ".pdf"))
+            progress_wheel.spin()
+            var pdfWriter :PdfWriter = PdfWriter.getInstance(document, FileOutputStream(path + fileName + ".pdf"))
+            val event = HeaderFooterPageEvent()
+            pdfWriter.setPageEvent(event)
+
+            //PdfWriter.getInstance(document, FileOutputStream(path + fileName + ".pdf"))
             document.open()
 
             var font: Font = Font(Font.FontFamily.HELVETICA, 10f, Font.BOLD)
@@ -360,7 +385,7 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
             ph1.add(Chunk("DATE: " + addQuotEditResult.quotation_date_selection!!, font))
             ph1.add(glue) // Here I add special chunk to the same phrase.
 
-            ph1.add(Chunk(addQuotEditResult.quotation_number + "       ", font))
+            ph1.add(Chunk(addQuotEditResult.quotation_number + "                         ", font))
             para.add(ph1)
             document.add(para)
 
@@ -378,9 +403,43 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
             cusName.spacingAfter = 2f
             document.add(cusName)
 
-            val cusAddress = Paragraph(addQuotEditResult.shop_addr, font)
+
+            //// addr test begin
+            var finalStr =""
+            try{
+                var str = addQuotEditResult.shop_addr.toString().toCharArray()
+                //var str = "1602, Marathon Icon,Opp. Peninsula Corporate Park, Off Ganpatrao Kadam Marg,Lower Parel (W),".toCharArray()
+                //var str = "Chhatrapati Shivaji Terminus Main Post Office, Borabazar Precinct, Ballard Estate, Fort, Mumbai, Maharashtra 400001, India".toCharArray()
+                finalStr =""
+                var isNw=false
+                var comCnt=0
+                for(i in 0..str.size-1){
+                    if(str[i].toString().equals(",")){
+                        comCnt++
+                        finalStr=finalStr+","
+                        if(comCnt%2==0){
+                            finalStr=finalStr+"\n"
+                            isNw=true
+                        }
+                    }else {
+                        if(isNw && str[i].toString().equals(" ")){
+                            isNw=false
+                        }else{
+                            finalStr=finalStr+str[i].toString()
+                        }
+                    }
+                }
+            }catch (ex:Exception){
+                finalStr=""
+            }
+
+
+            //// addr test end
+
+//            val cusAddress = Paragraph(addQuotEditResult.shop_addr, font)
+            val cusAddress = Paragraph(finalStr, font)
             cusAddress.alignment = Element.ALIGN_LEFT
-            cusAddress.spacingAfter = 6f
+            cusAddress.spacingAfter = 5f
             document.add(cusAddress)
 
 //            val cusemail = Paragraph("Email : " + addQuotEditResult.shop_email, font)
@@ -388,6 +447,11 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
 //            cusemail.spacingAfter = 5f
 //            document.add(cusemail)
 
+
+            val projectName = Paragraph("Project Name : "+addQuotEditResult.project_name, font)
+            projectName.alignment = Element.ALIGN_LEFT
+            projectName.spacingAfter = 5f
+            document.add(projectName)
 
             val cusemail = Chunk("Email : " +  addQuotEditResult.shop_email, font)
             //cusemail.setUnderline(0.1f, -2f) //0.1 thick, -2 y-location
@@ -414,7 +478,8 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
 
 
             //val sub = Paragraph("Sub :-Quotation For Eurobond-ALUMINIUM COMPOSITE PANEL", font)
-            val sub = Chunk("Sub :-Quotation For Eurobond-ALUMINIUM COMPOSITE PANEL", font)
+            //val sub = Chunk("Sub :-Quotation For Eurobond-ALUMINIUM COMPOSITE PANEL", font)
+            val sub = Chunk("Sub :-Quotation For "+getString(R.string.app_name), font)
             sub.setUnderline(0.1f, -2f) //0.1 thick, -2 y-location
             //sub.alignment = Element.ALIGN_LEFT
             //sub.spacingAfter = 10f
@@ -468,6 +533,7 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
             //table body
             var srNo:String=""
             var desc:String=""
+            var catagory:String=""
             var colorCode:String=""
             var rateSqFt:String=""
             var rateSqMtr:String=""
@@ -478,6 +544,12 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
                 colorCode = obj.get(i).color_name.toString()
                 rateSqFt="INR - "+obj!!.get(i).rate_sqft.toString()
                 rateSqMtr="INR - "+obj!!.get(i).rate_sqmtr.toString()
+                try{
+                    catagory = AppDatabase.getDBInstance()?.productListDao()?.getSingleProduct(obj!!.get(i).product_id!!.toInt()!!)!!.category.toString()
+                }catch (ex:Exception){
+                    catagory=""
+                }
+                desc=desc+"\n"+catagory
 
                 val tableRows = PdfPTable(widths)
                 tableRows.defaultCell.horizontalAlignment = Element.ALIGN_CENTER
@@ -573,7 +645,8 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
             thanks.spacingAfter = 2f
             document.add(thanks)
 
-            val companyName = Paragraph("EURO PANEL PRODUCTS LIMITED", fontB1)
+            //val companyName = Paragraph("EURO PANEL PRODUCTS LIMITED", fontB1)
+            val companyName = Paragraph(getString(R.string.app_name), fontB1)
             companyName.alignment = Element.ALIGN_LEFT
             companyName.spacingAfter = 2f
             document.add(companyName)
@@ -603,8 +676,8 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
             xxxx.spacingAfter = 4f
             document.add(xxxx)
 
-
-            val euroHead = Paragraph("\nEURO PANEL PRODUCTS LIMITED", font)
+            //val euroHead = Paragraph("\nEURO PANEL PRODUCTS LIMITED", font)
+            val euroHead = Paragraph("\n"+getString(R.string.app_name), font)
             euroHead.alignment = Element.ALIGN_LEFT
             //document.add(euroHead)
 
@@ -670,7 +743,7 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
 
             cell.setHorizontalAlignment(PdfPCell.ALIGN_LEFT)
             tablee.addCell(cell)
-            document.add(tablee)
+            //document.add(tablee)
 
 
             val bm3: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.strip_line)
@@ -686,14 +759,37 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
             } catch (e: IOException) {
                 e.printStackTrace()
             }
-            document.add(img3)
+            //document.add(img3)
 
 
             document.close()
 
 
             var sendingPath=path+fileName+".pdf"
-            if (!TextUtils.isEmpty(sendingPath)) {
+            /*if (!TextUtils.isEmpty(sendingPath)) {
+               try {
+                   val shareIntent = Intent(Intent.ACTION_SEND)
+                   shareIntent.addCategory(Intent.CATEGORY_APP_EMAIL);
+                   shareIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf<String>("saheli.bhattacharjee@indusnet.co.in","suman.bachar@indusnet.co.in"))
+//                    shareIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf<String>("sales1@eurobondacp.com","sales@eurobondacp.com"))
+                   shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Quotation for $shop_name created on dated ${addQuotEditResult.save_date_time}.")
+                   shareIntent.putExtra(Intent.EXTRA_TEXT, "Hello Team,  \n Please find attached Quotation No. ${addQuotEditResult.quotation_number} Dated ${addQuotEditResult.save_date_time} " +
+                           " for $shop_name \n\n\n" +
+                           "Regards \n${Pref.user_name}. ")
+                   shareIntent.type = "message/rfc822"
+                   val fileUrl = Uri.parse(sendingPath)
+                   val file = File(fileUrl.path)
+                   val uri: Uri = FileProvider.getUriForFile(mContext, context!!.applicationContext.packageName.toString() + ".provider", file)
+//                    shareIntent.type = "image/png"
+                   shareIntent.putExtra(Intent.EXTRA_STREAM, uri)
+                   startActivity(Intent.createChooser(shareIntent, "Share pdf using"))
+               } catch (e: Exception) {
+                   e.printStackTrace()
+                   (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
+               }
+           }*/
+
+            /*if (!TextUtils.isEmpty(sendingPath)) {
                 try {
                     val shareIntent = Intent(Intent.ACTION_SEND)
                     val fileUrl = Uri.parse(sendingPath)
@@ -706,14 +802,87 @@ class ViewAllQuotListFragment : BaseFragment(), View.OnClickListener {
                     e.printStackTrace()
                     (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
                 }
+            }*/
+
+
+            val m = Mail("saheli.bhattacharjee@indusnet.co.in", "@Intsaheli22")
+//            val m = Mail("saheli.bhattacharjee@indusnet.co.in", "@Intsaheli22")
+            val toArr = arrayOf("saheli.bhattacharjee@indusnet.co.in","suman.bachar@indusnet.co.in")
+//            val toArr = arrayOf("sales1@eurobondacp.com", "sales@eurobondacp.com")
+            m.setTo(toArr)
+            m.setFrom("TEAM");
+            m.setSubject("Quotation for $shop_name created on dated ${addQuotEditResult.save_date_time!!.split(" ").get(0)}.")
+            m.setBody("Hello Team,  \n Please find attached Quotation No. ${addQuotEditResult.quotation_number} Dated ${addQuotEditResult.save_date_time!!.split(" ").get(0)} for $shop_name \n\n\n Regards \n${Pref.user_name}.")
+            doAsync {
+                val fileUrl = Uri.parse(sendingPath)
+                val i = m.send(fileUrl.path)
+                uiThread {
+                    progress_wheel.stopSpinning()
+                    openDialogPopup("Hi ${Pref.user_name} !","Email was sent successfully.")
+                    /*try {
+                        if (i == true) {
+                            Toast.makeText(mContext, "Email was sent successfully ", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(mContext, "Email was not sent successfully ", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    catch (e2: java.lang.Exception) {
+                        e2.printStackTrace()
+                        Toast.makeText(mContext, "Email Error ", Toast.LENGTH_SHORT).show()
+                    }*/
+                }
             }
+       /*     if (!TextUtils.isEmpty(sendingPath)) {
+                try {
+                    val shareIntent = Intent(Intent.ACTION_SEND)
+                    shareIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    shareIntent.setType("vnd.android.cursor.item/email");
+                    shareIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf<String>("saheli.bhattacharjee@indusnet.co.in"))
+                    shareIntent.putExtra(Intent.EXTRA_SUBJECT, "Quotation for $shop_name created on dated ${addQuotEditResult.save_date_time!!.split(" ").get(0)}.")
+                    shareIntent.putExtra(Intent.EXTRA_TEXT,  "Hello Team,  \n Please find attached Quotation No. ${addQuotEditResult.quotation_number} Dated ${addQuotEditResult.save_date_time!!.split(" ").get(0)} for $shop_name \n\n\n Regards \n${Pref.user_name}.")
+
+                    val fileUrl = Uri.parse(sendingPath)
+                    val file = File(fileUrl.path)
+                    val uri: Uri = FileProvider.getUriForFile(mContext, context!!.applicationContext.packageName.toString() + ".provider", file)
+
+                    if (!file.exists() || !file.canRead()) {
+                        Toast.makeText(getContext(), "Attachment Error", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    shareIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    shareIntent.putExtra(Intent.EXTRA_STREAM,uri)
+                    startActivity(shareIntent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
+                }
+            }*/
 
         }catch (ex: Exception){
+            progress_wheel.stopSpinning()
             ex.printStackTrace()
             Toaster.msgShort(mContext, ex.message.toString())
             (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
         }
 
+
+    }
+
+    fun openDialogPopup(header:String,text:String){
+        val simpleDialog = Dialog(mContext)
+        simpleDialog.setCancelable(false)
+        simpleDialog.getWindow()!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        simpleDialog.setContentView(R.layout.dialog_ok_imei)
+        val dialogHeader = simpleDialog.findViewById(R.id.dialog_yes_header) as AppCustomTextView
+        val dialogBody = simpleDialog.findViewById(R.id.dialog_yes_body) as AppCustomTextView
+        dialogHeader.text = header
+        dialogBody.text = text
+        val dialogYes = simpleDialog.findViewById(R.id.tv_dialog_yes) as AppCustomTextView
+        dialogYes.setOnClickListener({ view ->
+            simpleDialog.cancel()
+        })
+        simpleDialog.show()
     }
 
     fun updateView(){

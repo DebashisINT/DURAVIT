@@ -274,6 +274,26 @@ public class AddShopDBModelEntity {
     @ColumnInfo(name = "whatsappNoForCustomer")
     private String whatsappNoForCustomer = null;
 
+    @ColumnInfo(name = "isShopDuplicate")
+    private boolean isShopDuplicate = false;
+
+    public boolean getIsShopDuplicate() {
+        return isShopDuplicate;
+    }
+    public void setIsShopDuplicate(boolean isShopDuplicate) {
+        this.isShopDuplicate = isShopDuplicate;
+    }
+
+    public String getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
+    }
+
+    @ColumnInfo(name = "purpose")
+    private String purpose = null;
 
     public String getAlternateNoForCustomer() {
         return alternateNoForCustomer;

@@ -17,6 +17,7 @@ import android.widget.RelativeLayout
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.duravit.CustomStatic
 import com.duravit.NumberToWords
 import com.duravit.R
 import com.duravit.app.AppDatabase
@@ -48,6 +49,7 @@ import com.duravit.features.nearbyshops.presentation.QrCodeDialog
 import com.duravit.features.orderList.api.neworderlistapi.NewOrderListRepoProvider
 import com.duravit.features.orderList.model.NewOrderListResponseModel
 import com.duravit.features.shopdetail.presentation.AddCollectionDialog
+import com.duravit.features.shopdetail.presentation.AddCollectionWithOrderDialog
 import com.duravit.features.shopdetail.presentation.api.addcollection.AddCollectionRepoProvider
 import com.duravit.features.shopdetail.presentation.model.addcollection.AddCollectionInputParamsModel
 import com.duravit.features.viewAllOrder.api.addorder.AddOrderRepoProvider
@@ -83,6 +85,7 @@ class NewOrderListFragment : BaseFragment() {
 
     private var i = 0
     private var collectionDialog: AddCollectionDialog?= null
+    private var collectionDialog1: AddCollectionWithOrderDialog?= null
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -347,7 +350,6 @@ class NewOrderListFragment : BaseFragment() {
             override fun onSyncClick(position: Int) {
                 //syncShopActivity(ShopActivityEntityList[position].shopid!!)
 
-
                 val shop = AppDatabase.getDBInstance()!!.addShopEntryDao().getShopDetail(list[position].shop_id)
 
                 if (shop != null) {
@@ -379,6 +381,14 @@ class NewOrderListFragment : BaseFragment() {
             }
 
             override fun onReturnClick(position: Int) {
+
+            }
+
+            override fun onDamageClick(shop_id: String) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onSurveyClick(shop_id: String) {
 
             }
         }, { shopId: String, orderId: String ->
@@ -463,72 +473,153 @@ class NewOrderListFragment : BaseFragment() {
 
                     val addShop = AppDatabase.getDBInstance()?.addShopEntryDao()?.getShopByIdN(it.shop_id)
 
-                    collectionDialog = AddCollectionDialog.getInstance(it, true, addShop?.shopName!!, AppUtils.getCurrentDateFormatInTa(it.only_date!!),
-                            it.amount!!, it.order_id!!, object : AddCollectionDialog.AddCollectionClickLisneter {
-                        override fun onClick(collection: String, date: String, paymentId: String, instrument: String, bank: String, filePath: String, feedback: String, patientName: String, patientAddress: String, patinetNo: String,
-                                             hospital: String, emailAddress: String) {
+                    var bID = ""
+                    var bDtlList = AppDatabase.getDBInstance()!!.billingDao().getDataOrderIdWise(it.order_id.toString())
+                    if(bDtlList!= null && bDtlList.size>0){
+                        bID=bDtlList.get(0).bill_id
+                    }
 
-                            //val addShop = AppDatabase.getDBInstance()!!.addShopEntryDao().getShopByIdN(it.shop_id)
-                            if (addShop != null) {
 
-                                //if (addShop.isUploaded) {
-                                val order = it
-                                doAsync {
+                    if(Pref.IsCollectionOrderWise){
+                        collectionDialog1 = AddCollectionWithOrderDialog.getInstance(it, true, addShop?.shopName!!, AppUtils.getCurrentDateFormatInTa(it.only_date!!),
+                            it.amount!!, it.order_id!!,bID, object : AddCollectionWithOrderDialog.AddCollectionClickLisneter {
+                                override fun onClick(collection: String, date: String, paymentId: String, instrument: String, bank: String, filePath: String, feedback: String, patientName: String, patientAddress: String, patinetNo: String,
+                                                     hospital: String, emailAddress: String,order_id:String) {
 
-                                    val collectionDetails = CollectionDetailsEntity()
-                                    collectionDetails.collection = collection/*.substring(1)*/
+                                    //val addShop = AppDatabase.getDBInstance()!!.addShopEntryDao().getShopByIdN(it.shop_id)
+                                    if (addShop != null) {
+                                        //if (addShop.isUploaded) {
+                                        val order = it
+                                        doAsync {
 
-                                    val random = Random()
-                                    val m = random.nextInt(9999 - 1000) + 1000
+                                            val collectionDetails = CollectionDetailsEntity()
+                                            collectionDetails.collection = collection/*.substring(1)*/
 
-                                    //collectionDetails.collection_id = Pref.user_id + "_" + m /*+ "_" + System.currentTimeMillis().toString()*/
-                                    collectionDetails.collection_id = Pref.user_id + "c" + m
-                                    collectionDetails.shop_id = it.shop_id
-                                    collectionDetails.date = date //AppUtils.getCurrentDate()
-                                    collectionDetails.only_time = AppUtils.getCurrentTime()  //AppUtils.getCurrentDate()
-                                    collectionDetails.bill_id = ""
-                                    collectionDetails.order_id = it.order_id
-                                    collectionDetails.payment_id = paymentId
-                                    collectionDetails.bank = bank
-                                    collectionDetails.instrument_no = instrument
-                                    collectionDetails.file_path = filePath
-                                    collectionDetails.feedback = feedback
-                                    collectionDetails.patient_name = patientName
-                                    collectionDetails.patient_address = patientAddress
-                                    collectionDetails.patient_no = patinetNo
-                                    /*06-01-2022*/
-                                    collectionDetails.Hospital = hospital
-                                    collectionDetails.Email_Address = emailAddress
-                                    AppDatabase.getDBInstance()!!.collectionDetailsDao().insert(collectionDetails)
+                                            val random = Random()
+                                            val m = random.nextInt(9999 - 1000) + 1000
 
-                                    val collectionDate = AppUtils.getCurrentDateForShopActi() + "T" + collectionDetails.only_time
+                                            //collectionDetails.collection_id = Pref.user_id + "_" + m /*+ "_" + System.currentTimeMillis().toString()*/
+                                            collectionDetails.collection_id = Pref.user_id + "c" + m
+                                            collectionDetails.shop_id = it.shop_id
+                                            collectionDetails.date = date //AppUtils.getCurrentDate()
+                                            collectionDetails.only_time = AppUtils.getCurrentTime()  //AppUtils.getCurrentDate()
+                                            collectionDetails.bill_id = ""
+                                            collectionDetails.order_id = it.order_id
+                                            collectionDetails.payment_id = paymentId
+                                            collectionDetails.bank = bank
+                                            collectionDetails.instrument_no = instrument
+                                            collectionDetails.file_path = filePath
+                                            collectionDetails.feedback = feedback
+                                            collectionDetails.patient_name = patientName
+                                            collectionDetails.patient_address = patientAddress
+                                            collectionDetails.patient_no = patinetNo
+                                            /*06-01-2022*/
+                                            collectionDetails.Hospital = hospital
+                                            collectionDetails.Email_Address = emailAddress
 
-                                    uiThread {
+                                            collectionDetails.order_id = order_id
+                                            AppDatabase.getDBInstance()!!.collectionDetailsDao().insert(collectionDetails)
 
-                                        if (AppUtils.isOnline(mContext)) {
-                                            if (addShop.isUploaded) {
-                                                if (order.isUploaded) {
-                                                    addCollectionApi(collectionDetails.shop_id, collectionDetails.collection_id, "",
-                                                            "", collection, collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
-                                                } else {
-                                                    syncOrderForCollection(order, collectionDetails.shop_id, collectionDetails.collection_id, "", "", collection,
+                                            val collectionDate = AppUtils.getCurrentDateForShopActi() + "T" + collectionDetails.only_time
+
+                                            uiThread {
+
+                                                if (AppUtils.isOnline(mContext)) {
+                                                    if (addShop.isUploaded) {
+                                                        if (order.isUploaded) {
+                                                            addCollectionApi(collectionDetails.shop_id, collectionDetails.collection_id, "",
+                                                                "", collection, collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
+                                                        } else {
+                                                            syncOrderForCollection(order, collectionDetails.shop_id, collectionDetails.collection_id, "", "", collection,
+                                                                collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
+                                                        }
+                                                    } else {
+                                                        syncShopForCollection(addShop, collectionDetails.shop_id, collectionDetails.collection_id, "", "", collection,
                                                             collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
-                                                }
-                                            } else {
-                                                syncShopForCollection(addShop, collectionDetails.shop_id, collectionDetails.collection_id, "", "", collection,
-                                                        collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
-                                            }
+                                                    }
 
-                                        } else {
-                                            (mContext as DashboardActivity).showSnackMessage("Collection added successfully")
-                                            voiceCollectionMsg()
+                                                } else {
+                                                    (mContext as DashboardActivity).showSnackMessage("Collection added successfully")
+                                                    voiceCollectionMsg()
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }
-                        }
-                    })
-                    collectionDialog?.show((mContext as DashboardActivity).supportFragmentManager, "AddCollectionDialog")
+                            })
+                        collectionDialog1?.show((mContext as DashboardActivity).supportFragmentManager, "AddCollectionWithOrderDialog")
+                    }
+                    else{
+                        collectionDialog = AddCollectionDialog.getInstance(it, true, addShop?.shopName!!, AppUtils.getCurrentDateFormatInTa(it.only_date!!),
+                            it.amount!!, it.order_id!!, object : AddCollectionDialog.AddCollectionClickLisneter {
+                                override fun onClick(collection: String, date: String, paymentId: String, instrument: String, bank: String, filePath: String, feedback: String, patientName: String, patientAddress: String, patinetNo: String,
+                                                     hospital: String, emailAddress: String,order_id:String) {
+
+                                    //val addShop = AppDatabase.getDBInstance()!!.addShopEntryDao().getShopByIdN(it.shop_id)
+                                    if (addShop != null) {
+
+                                        //if (addShop.isUploaded) {
+                                        val order = it
+                                        doAsync {
+
+                                            val collectionDetails = CollectionDetailsEntity()
+                                            collectionDetails.collection = collection/*.substring(1)*/
+
+                                            val random = Random()
+                                            val m = random.nextInt(9999 - 1000) + 1000
+
+                                            //collectionDetails.collection_id = Pref.user_id + "_" + m /*+ "_" + System.currentTimeMillis().toString()*/
+                                            collectionDetails.collection_id = Pref.user_id + "c" + m
+                                            collectionDetails.shop_id = it.shop_id
+                                            collectionDetails.date = date //AppUtils.getCurrentDate()
+                                            collectionDetails.only_time = AppUtils.getCurrentTime()  //AppUtils.getCurrentDate()
+                                            collectionDetails.bill_id = ""
+                                            collectionDetails.order_id = it.order_id
+                                            collectionDetails.payment_id = paymentId
+                                            collectionDetails.bank = bank
+                                            collectionDetails.instrument_no = instrument
+                                            collectionDetails.file_path = filePath
+                                            collectionDetails.feedback = feedback
+                                            collectionDetails.patient_name = patientName
+                                            collectionDetails.patient_address = patientAddress
+                                            collectionDetails.patient_no = patinetNo
+                                            /*06-01-2022*/
+                                            collectionDetails.Hospital = hospital
+                                            collectionDetails.Email_Address = emailAddress
+
+                                            collectionDetails.order_id = order_id
+                                            AppDatabase.getDBInstance()!!.collectionDetailsDao().insert(collectionDetails)
+
+                                            val collectionDate = AppUtils.getCurrentDateForShopActi() + "T" + collectionDetails.only_time
+
+                                            uiThread {
+
+                                                if (AppUtils.isOnline(mContext)) {
+                                                    if (addShop.isUploaded) {
+                                                        if (order.isUploaded) {
+                                                            addCollectionApi(collectionDetails.shop_id, collectionDetails.collection_id, "",
+                                                                "", collection, collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
+                                                        } else {
+                                                            syncOrderForCollection(order, collectionDetails.shop_id, collectionDetails.collection_id, "", "", collection,
+                                                                collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
+                                                        }
+                                                    } else {
+                                                        syncShopForCollection(addShop, collectionDetails.shop_id, collectionDetails.collection_id, "", "", collection,
+                                                            collectionDate, collectionDetails.bill_id, collectionDetails.order_id, collectionDetails)
+                                                    }
+
+                                                } else {
+                                                    (mContext as DashboardActivity).showSnackMessage("Collection added successfully")
+                                                    voiceCollectionMsg()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            })
+                        collectionDialog?.show((mContext as DashboardActivity).supportFragmentManager, "AddCollectionDialog")
+                    }
+
                 }
 
             } catch (e: java.lang.Exception) {
@@ -568,7 +659,7 @@ class NewOrderListFragment : BaseFragment() {
         var fileName = "FTS"+ "_" + obj.order_id
         fileName = fileName.replace("/", "_")
 
-        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() +"/ORDERDETALIS/"
+        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() +"/duravitApp/ORDERDETALIS/"
 
         val dir = File(path)
         if (!dir.exists()) {
@@ -1201,6 +1292,11 @@ class NewOrderListFragment : BaseFragment() {
         addShopData.alternateNoForCustomer = mAddShopDBModelEntity.alternateNoForCustomer
         addShopData.whatsappNoForCustomer = mAddShopDBModelEntity.whatsappNoForCustomer
 
+        // duplicate shop api call
+        addShopData.isShopDuplicate=mAddShopDBModelEntity.isShopDuplicate
+
+        addShopData.purpose=mAddShopDBModelEntity.purpose
+
         callAddShopApi(addShopData, mAddShopDBModelEntity.shopImageLocalPath, shop_id, collection_id, amount, collection,
                 currentDateForShopActi, desc, billId, mAddShopDBModelEntity.doc_degree, orderId, collectionDetails)
     }
@@ -1794,6 +1890,11 @@ class NewOrderListFragment : BaseFragment() {
         var uniqKeyObj=AppDatabase.getDBInstance()!!.shopActivityDao().getNewShopActivityKey(shop.shop_id!!, false)
         addShopData.shop_revisit_uniqKey=uniqKeyObj?.shop_revisit_uniqKey!!
 
+        // duplicate shop api call
+        addShopData.isShopDuplicate=shop.isShopDuplicate
+        addShopData.purpose=shop.purpose
+
+
         callAddShopApi(addShopData, shop.shopImageLocalPath, position, list, shop.doc_degree)
         //}
     }
@@ -2091,7 +2192,15 @@ class NewOrderListFragment : BaseFragment() {
                 shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
             else
                 shopDurationData.approximate_1st_billing_value = ""
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
             shopDataList.add(shopDurationData)
         }
         else {
@@ -2172,7 +2281,15 @@ class NewOrderListFragment : BaseFragment() {
                     shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
                 else
                     shopDurationData.approximate_1st_billing_value = ""
-
+                //duration garbage fix
+                try{
+                    if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                    {
+                        shopDurationData.spent_duration="00:00:10"
+                    }
+                }catch (ex:Exception){
+                    shopDurationData.spent_duration="00:00:10"
+                }
                 shopDataList.add(shopDurationData)
             }
         }
@@ -2538,6 +2655,10 @@ class NewOrderListFragment : BaseFragment() {
 
         addShopData.alternateNoForCustomer = mAddShopDBModelEntity.alternateNoForCustomer
         addShopData.whatsappNoForCustomer = mAddShopDBModelEntity.whatsappNoForCustomer
+
+        // duplicate shop api call
+        addShopData.isShopDuplicate=mAddShopDBModelEntity.isShopDuplicate
+        addShopData.purpose=mAddShopDBModelEntity.purpose
 
         callAddShopApi(addShopData, mAddShopDBModelEntity.shopImageLocalPath, shopList, orderDetailsList,
                 mAddShopDBModelEntity.doc_degree)

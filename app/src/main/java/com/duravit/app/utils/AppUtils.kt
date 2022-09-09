@@ -1,6 +1,7 @@
 package com.duravit.app.utils
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -52,6 +53,10 @@ import java.math.BigDecimal
 import java.sql.Timestamp
 import java.text.ParseException
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -204,7 +209,7 @@ class AppUtils {
             //val storageDir = File(Environment.getExternalStorageDirectory().toString()
                     //+ File.separator + "fieldtrackingsystem" + File.separator)
             //27-09-2021
-            val storageDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() + File.separator + "fieldtrackingsystem" + File.separator)
+            val storageDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString() + File.separator + "duravitApp/fieldtrackingsystem" + File.separator)
             storageDir.mkdirs()
 
             // Save a file: path for use with ACTION_VIEW intents
@@ -1063,6 +1068,20 @@ class AppUtils {
 
         }
 
+        fun convertToDateLikeOrderFormat(date: String): String {
+            try {
+                val f = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
+                val d = f.parse(date)
+                val date = SimpleDateFormat("dd-MMM-yyyy", Locale.ENGLISH)
+                return date.format(d)
+//            System.out.println("Time: " + time.format(d))
+            } catch (e: ParseException) {
+                e.printStackTrace()
+                return getCurrentDate()
+            }
+
+        }
+
         fun convertDateTimeToCommonFormat(date: String): String {
             try {
                 val f = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH)
@@ -1254,6 +1273,7 @@ class AppUtils {
             return networkType
         }
 
+        @SuppressLint("MissingPermission")
         fun mobNetType(context: Context): String {
             val netType = getNetworkType(context)
             if (TextUtils.isEmpty(netType) || netType.equals("WiFi", ignoreCase = true))
@@ -1473,6 +1493,13 @@ class AppUtils {
 
         }
 
+        @SuppressLint("NewApi")
+        fun getNextDateForShopActi(): String {
+            val tomorrow = LocalDate.now().plus(1, ChronoUnit.DAYS)
+            val formattedTomorrow = tomorrow.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            return formattedTomorrow.toString()
+        }
+
         fun changeLocalDateFormatToAtt(dateString: String): String {
             val dateFormat = SimpleDateFormat("dd-MMM-yy", Locale.ENGLISH)
             var convertedDate = Date()
@@ -1483,6 +1510,20 @@ class AppUtils {
                 e.printStackTrace()
             }
             val f = SimpleDateFormat("yyyy/MM/dd", Locale.ENGLISH)
+            return f.format(convertedDate)
+
+        }
+
+        fun changeLocalDateFormatToAtte(dateString: String): String {
+            val dateFormat = SimpleDateFormat("dd-MMM-yy", Locale.ENGLISH)
+            var convertedDate = Date()
+            try {
+                convertedDate = dateFormat.parse(dateString) //"20130526160000"
+            } catch (e: ParseException) {
+                // TODO Auto-generated catch block
+                e.printStackTrace()
+            }
+            val f = SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH)
             return f.format(convertedDate)
 
         }
@@ -1610,6 +1651,25 @@ class AppUtils {
         fun getCurrentDateForShopActi(): String {
             val df = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
             return df.format(Date()).toString()
+        }
+
+        fun getCurrentMonthDayForShopActi(): String {
+            val df = SimpleDateFormat("MM-dd", Locale.ENGLISH)
+            return df.format(Date()).toString()
+        }
+
+        fun changeAttendanceDateFormatToMonthDay(dateString: String): String {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH)
+            var convertedDate = Date()
+            try {
+                convertedDate = dateFormat.parse(dateString) //"20130526160000"
+            } catch (e: ParseException) {
+                // TODO Auto-generated catch block
+                e.printStackTrace()
+            }
+            val f = SimpleDateFormat("MM-dd", Locale.ENGLISH)
+            return f.format(convertedDate)
+
         }
 
         fun getCurrentDateMonth(): String {
@@ -1902,6 +1962,7 @@ class AppUtils {
             return BitmapFactory.decodeStream(c.contentResolver.openInputStream(uri), null, o2)!!
         }
 
+
         fun getCompressImage(filePath: String): Long {
             val file = File(filePath)
 
@@ -1963,7 +2024,7 @@ class AppUtils {
                 //Convert bitmap to byte array
                 val bos = ByteArrayOutputStream()
                 //bitmap.compress(Bitmap.CompressFormat.PNG, 2, bos);
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 20, bos)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 10, bos)
                 val bitmapdata = bos.toByteArray()
 
                 //write the bytes in file

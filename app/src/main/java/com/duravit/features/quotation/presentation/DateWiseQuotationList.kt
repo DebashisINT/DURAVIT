@@ -861,6 +861,10 @@ class DateWiseQuotationList : BaseFragment(), DatePickerListener {
 
             addShopData.alternateNoForCustomer = alternateNoForCustomer
             addShopData.whatsappNoForCustomer = whatsappNoForCustomer
+
+            // duplicate shop api call
+            addShopData.isShopDuplicate=isShopDuplicate
+            addShopData.purpose=purpose
         }
         callAddShopApi(addShopData, shop?.shopImageLocalPath!!, quot, isEdit, shop.doc_degree!!)
     }
@@ -1160,7 +1164,15 @@ class DateWiseQuotationList : BaseFragment(), DatePickerListener {
                 shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
             else
                 shopDurationData.approximate_1st_billing_value = ""
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
             shopDataList.add(shopDurationData)
         }
         else {
@@ -1242,7 +1254,15 @@ class DateWiseQuotationList : BaseFragment(), DatePickerListener {
                     shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
                 else
                     shopDurationData.approximate_1st_billing_value = ""
-
+                //duration garbage fix
+                try{
+                    if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                    {
+                        shopDurationData.spent_duration="00:00:10"
+                    }
+                }catch (ex:Exception){
+                    shopDurationData.spent_duration="00:00:10"
+                }
                 shopDataList.add(shopDurationData)
             }
         }

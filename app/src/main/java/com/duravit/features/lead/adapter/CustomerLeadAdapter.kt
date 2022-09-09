@@ -45,8 +45,7 @@ class CustomerLeadAdapter(var mContext:Context,var list:ArrayList<CustomerLeadLi
 
     override fun onBindViewHolder(holder: CustomerLeadViewHolder, position: Int) {
 
-        val drawable = TextDrawable.builder()
-                .buildRoundRect(mList!!.get(position).customer_name.trim().toUpperCase().take(1), ColorGenerator.MATERIAL.randomColor, 120)
+        val drawable = TextDrawable.builder().buildRoundRect(mList!!.get(position).customer_name.trim().toUpperCase().take(1), ColorGenerator.MATERIAL.randomColor, 120)
 
         holder.imageShop.setImageDrawable(drawable)
         holder.shopName.text=mList!!.get(position).customer_name
@@ -69,6 +68,8 @@ class CustomerLeadAdapter(var mContext:Context,var list:ArrayList<CustomerLeadLi
         }
 
         holder.iv_activity.setOnClickListener {listener.onActivityClick(mList!!.get(holder.adapterPosition))  }
+
+        holder.shopPhone.setOnClickListener {listener.onPhoneClick(mList!!.get(holder.adapterPosition))  }
 
     }
 
@@ -162,6 +163,7 @@ class CustomerLeadAdapter(var mContext:Context,var list:ArrayList<CustomerLeadLi
 
     interface OnPendingLeadClickListener {
         fun onActivityClick(obj:CustomerLeadList)
+        fun onPhoneClick(obj:CustomerLeadList)
     }
 
 

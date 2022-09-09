@@ -1,5 +1,6 @@
 package com.duravit.features.lead
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.os.Bundle
@@ -20,6 +21,7 @@ import com.duravit.app.NetworkConstant
 import com.duravit.app.Pref
 import com.duravit.app.SearchListener
 import com.duravit.app.types.FragType
+import com.duravit.app.uiaction.IntentActionable
 import com.duravit.app.utils.AppUtils
 import com.duravit.app.utils.FTStorageUtils
 import com.duravit.app.utils.Toaster
@@ -131,6 +133,7 @@ class LeadPendingFrag : BaseFragment(), DatePickerDialog.OnDateSetListener, View
         }
     }
 
+    @SuppressLint("NewApi")
     override fun onClick(v: View?) {
         when (v?.id) {
 
@@ -155,6 +158,7 @@ class LeadPendingFrag : BaseFragment(), DatePickerDialog.OnDateSetListener, View
             R.id.frag_lead_pending_spinnerType->{
                 var List:ArrayList<String> = ArrayList()
                 List.add("IndiaMart")
+                List.add("IndiaMart (ARCHER)")
                 List.add("MccoyMart")
                 List.add("Website")
                 List.add("Direct Call")
@@ -298,6 +302,13 @@ class LeadPendingFrag : BaseFragment(), DatePickerDialog.OnDateSetListener, View
         adapter = CustomerLeadAdapter(mContext,tempList,object : CustomerLeadAdapter.OnPendingLeadClickListener{
             override fun onActivityClick(obj: CustomerLeadList) {
                 doActivity(obj)
+            }
+            override fun onPhoneClick(obj: CustomerLeadList) {
+                if(obj.mobile_no.length>1)
+                {
+                    var phoneNo=obj.mobile_no
+                    IntentActionable.initiatePhoneCall(mContext, phoneNo)
+                }
             }
         }, {
             it

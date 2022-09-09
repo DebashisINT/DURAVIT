@@ -18,6 +18,7 @@ import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.content.FileProvider
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.duravit.CustomConstants
 import com.elvishew.xlog.XLog
@@ -97,6 +98,9 @@ import com.duravit.features.returnsOrder.ReturnRequest
 import com.duravit.features.viewAllOrder.model.NewOrderSaveApiModel
 import com.duravit.features.viewAllOrder.orderNew.NewOrderScrActiFragment
 import com.duravit.features.viewAllOrder.orderNew.NeworderScrCartFragment
+import com.elvishew.xlog.LogUtils.compress
+import com.facebook.stetho.common.LogUtil
+import com.google.common.util.concurrent.ListenableFuture
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_login_new.*
@@ -104,6 +108,7 @@ import org.jetbrains.anko.doAsync
 import org.jetbrains.anko.uiThread
 import java.io.*
 import java.util.*
+import java.util.concurrent.ExecutionException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.collections.ArrayList
@@ -525,7 +530,7 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                             unsyncListttt!!.get(l).product_name!!, unsyncList!!.get(l).gender!!,
                             unsyncListttt!!.get(l).color_id!!, unsyncList!!.get(l).color_name!!,
                             unsyncListttt!!.get(l).size!!,
-                            unsyncListttt!!.get(l).qty!!)
+                            unsyncListttt!!.get(l).qty!!,unsyncListttt!!.get(l).rate!!)
                     newOrderRoomDataListttt.add(newOrderRoomDataa)
                 }
                 newOrderSaveApiModel.product_list=newOrderRoomDataListttt
@@ -1310,6 +1315,11 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
         else
             addShopData.whatsappNoForCustomer=""
 
+        // duplicate shop api call
+        addShopData.isShopDuplicate=mAddShopDBModelEntity.isShopDuplicate
+
+        addShopData.purpose=mAddShopDBModelEntity.purpose
+
 
         callAddShopApi(addShopData, mAddShopDBModelEntity.shopImageLocalPath, mAddShopDBModelEntity.doc_degree, shopList)
         //callAddShopApi(addShopData, "")
@@ -1684,7 +1694,15 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                 shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
             else
                 shopDurationData.approximate_1st_billing_value = ""
-
+            //duration garbage fix
+            try{
+                if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                {
+                    shopDurationData.spent_duration="00:00:10"
+                }
+            }catch (ex:Exception){
+                shopDurationData.spent_duration="00:00:10"
+            }
 
             shopDataList.add(shopDurationData)
         }
@@ -1767,6 +1785,16 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                     shopDurationData.approximate_1st_billing_value = shopActivity.approximate_1st_billing_value!!
                 else
                     shopDurationData.approximate_1st_billing_value = ""
+
+                //duration garbage fix
+                try{
+                    if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                    {
+                        shopDurationData.spent_duration="00:00:10"
+                    }
+                }catch (ex:Exception){
+                    shopDurationData.spent_duration="00:00:10"
+                }
 
                 shopDataList.add(shopDurationData)
             }
@@ -3103,6 +3131,16 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                         else
                             shopDurationData.approximate_1st_billing_value = ""
 
+                        //duration garbage fix
+                        try{
+                            if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                            {
+                                shopDurationData.spent_duration="00:00:10"
+                            }
+                        }catch (ex:Exception){
+                            shopDurationData.spent_duration="00:00:10"
+                        }
+
                         shopDataList.add(shopDurationData)
 
 
@@ -3184,6 +3222,16 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                             shopDurationData.approximate_1st_billing_value = it.approximate_1st_billing_value!!
                         else
                             shopDurationData.approximate_1st_billing_value = ""
+
+                        //duration garbage fix
+                        try{
+                            if(shopDurationData.spent_duration!!.contains("-") || shopDurationData.spent_duration!!.length != 8)
+                            {
+                                shopDurationData.spent_duration="00:00:10"
+                            }
+                        }catch (ex:Exception){
+                            shopDurationData.spent_duration="00:00:10"
+                        }
 
 
                         shopDataList.add(shopDurationData)
@@ -3332,15 +3380,12 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                                                     AppDatabase.getDBInstance()!!.shopActivityDao().updateisUploaded(true, shopDataList[i].shop_id!!, AppUtils.changeAttendanceDateFormatToCurrent(shopDataList[i].visited_date!!), shopDataList[i].start_timestamp!!)
                                                 }
 
-                                                checkToRetryVisitButton()
+                                                // multivisit test
+                                                syncShopVisitImage(shopDataList)
+
+                                                //checkToRetryVisitButton()
                                             }
                                         }
-
-
-
-
-
-
                                     } else {
                                         BaseActivity.isShopActivityUpdating = false
                                         /*revisitTickImg.visibility = View.VISIBLE
@@ -3536,8 +3581,7 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                     }
                 }
                 else {
-                    val shopActivity = AppDatabase.getDBInstance()!!.shopActivityDao().durationAvailableForShopList(syncedShopList[k].shop_id, true,
-                            false)
+                    val shopActivity = AppDatabase.getDBInstance()!!.shopActivityDao().durationAvailableForShopList(syncedShopList[k].shop_id, true, false)
 
                     shopActivity?.forEach {
                         val shopDurationData = ShopDurationRequestData()
@@ -5271,10 +5315,27 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
     //===========================================================ADD DOCUMENT========================================================
 
 
-
+    fun isWorkerRunning(tag:String):Boolean{
+        val workInstance = WorkManager.getInstance(mContext)
+        val status: ListenableFuture<List<WorkInfo>> = WorkManager.getInstance(mContext).getWorkInfosByTag(tag)
+        try{
+            var runningStatus:Boolean = false
+            val workInfoList:List<WorkInfo> = status.get()
+            for( obj: WorkInfo in workInfoList){
+                var state : WorkInfo.State =  obj.state
+                runningStatus = state == WorkInfo.State.RUNNING || state == WorkInfo.State.ENQUEUED
+            }
+            return runningStatus
+        }
+        catch (ex: ExecutionException){
+            return false
+        }
+        catch (ex:InterruptedException){
+            return false
+        }
+    }
 
     private fun checkToCallActivity() {
-
 
         var intent = Intent(mContext, MonitorService::class.java)
         intent.action = CustomConstants.STOP_MONITOR_SERVICE
@@ -5282,10 +5343,14 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
         mContext.stopService(intent)
 
         SendBrod.stopBrod(mContext)
+        SendBrod.stopBrodColl(mContext)
+        SendBrod.stopBrodZeroOrder(mContext)
+        SendBrod.stopBrodDOBDOA(mContext)
 
         try{
             WorkManager.getInstance(mContext).cancelAllWork()
             WorkManager.getInstance(mContext).cancelAllWorkByTag("workerTag")
+            XLog.d("Logout Sync workerservice status : " + isWorkerRunning("workerTag").toString())
         }catch (ex:Exception){
             ex.printStackTrace()
         }
@@ -6878,54 +6943,6 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
         }
     }
 
-
-
-  /*25-03-2022*/
- /* private fun callLogshareApi(){
-      if(Pref.LogoutWithLogFile){
-          val addReqData = AddLogReqData()
-          addReqData.user_id = Pref.user_id
-          val fileUrl = Uri.parse(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "xduravitlogsample/log").path);
-          val file = File(fileUrl.path)
-          if (!file.exists()) {
-              XLog.d("Logshare :  file not found")
-              checkToCallActivity()
-          }
-          val uri: Uri = FileProvider.getUriForFile(mContext, mContext!!.applicationContext.packageName.toString() + ".provider", file)
-          try{
-              val repository = EditShopRepoProvider.provideEditShopRepository()
-              BaseActivity.compositeDisposable.add(
-                      repository.addLogfile(addReqData,file.toString(),mContext)
-                              .observeOn(AndroidSchedulers.mainThread())
-                              .subscribeOn(Schedulers.io())
-                              .subscribe({ result ->
-                                  XLog.d("Logshare : RESPONSE " + result.status)
-                                  if (result.status == NetworkConstant.SUCCESS){
-                                      //XLog.d("Return : RESPONSE URL " + result.file_url +  " " +Pref.user_name)
-                                  }
-                                  checkToCallActivity()
-                              },{error ->
-                                  if (error == null) {
-                                      XLog.d("Logshare : ERROR " + "UNEXPECTED ERROR IN Log share API")
-                                  } else {
-                                      XLog.d("Logshare : ERROR " + error.localizedMessage)
-                                      error.printStackTrace()
-                                  }
-                                  checkToCallActivity()
-                              })
-              )
-
-          }
-          catch (ex:Exception){
-              ex.printStackTrace()
-              checkToCallActivity()
-          }
-      }else{
-          checkToCallActivity()
-      }
-
-  }*/
-
     private fun callLogshareApi(){
         if(Pref.LogoutWithLogFile){
             try{
@@ -6988,48 +7005,5 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
         }
     }
 
-/* private fun callLogshareApi(){
-     checkToCallActivity()
-     *//*val addReqData = AddLogReqData()
-      addReqData.user_id = Pref.user_id
-      val fileUrl = Uri.parse(File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "xduravitlogsample/log").path);
-      val file = File(fileUrl.path)
-      if (!file.exists()) {
-          return
-      }
-      val uri: Uri = FileProvider.getUriForFile(mContext, mContext!!.applicationContext.packageName.toString() + ".provider", file)
-      try{
-          val repository = EditShopRepoProvider.provideEditShopRepository()
-          BaseActivity.compositeDisposable.add(
-                  repository.addLogfile(addReqData,fileUrl.toString(),mContext)
-                              .observeOn(AndroidSchedulers.mainThread())
-                              .subscribeOn(Schedulers.io())
-                              .subscribe({ result ->
-                                  XLog.d("Return : RESPONSE " + result.status)
-                                  if (result.status == NetworkConstant.SUCCESS){
-                                      XLog.d("Return : RESPONSE URL " + result.file_url +   Pref.user_name)
-                                      checkToCallActivity()
-                                  }
-                                  else if(result.status == NetworkConstant.SESSION_MISMATCH) {
-                                      XLog.d("Return : RESPONSE Message " + result.message)
-                                      checkToCallActivity()
-                                  }
-                              },{error ->
-                                  if (error == null) {
-                                      XLog.d("Logshare : ERROR " + "UNEXPECTED ERROR IN Log share API")
-                                  } else {
-                                      XLog.d("Logshare : ERROR " + error.localizedMessage)
-                                      error.printStackTrace()
-                                  }
-                                  checkToCallActivity()
-                              })
-              )
-
-          }
-        catch (ex:Exception){
-          checkToCallActivity()
-
-      }*//*
-  }*/
 
 }

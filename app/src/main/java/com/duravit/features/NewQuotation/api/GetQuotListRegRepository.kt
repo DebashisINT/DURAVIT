@@ -1,24 +1,11 @@
 package com.duravit.features.NewQuotation.api
 
-import android.content.Context
-import android.net.Uri
-import android.text.TextUtils
-import android.util.Log
-import com.duravit.app.FileUtils
 import com.duravit.base.BaseResponse
-import com.duravit.features.NewQuotation.model.*
-import com.duravit.features.addshop.model.AddShopRequestData
-import com.duravit.features.addshop.model.AddShopResponse
-import com.duravit.features.login.model.userconfig.UserConfigResponseModel
-import com.duravit.features.myjobs.model.WIPImageSubmit
-import com.duravit.features.photoReg.model.*
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.gson.Gson
+import com.duravit.features.NewQuotation.model.AddQuotRequestData
+import com.duravit.features.NewQuotation.model.EditQuotRequestData
+import com.duravit.features.NewQuotation.model.ViewDetailsQuotResponse
+import com.duravit.features.NewQuotation.model.ViewQuotResponse
 import io.reactivex.Observable
-import okhttp3.MediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import java.io.File
 
 class GetQuotListRegRepository(val apiService : GetQutoListApi) {
 
@@ -32,6 +19,10 @@ class GetQuotListRegRepository(val apiService : GetQutoListApi) {
 
     fun viewDetailsQuot(quotId: String): Observable<ViewDetailsQuotResponse> {
         return apiService.getQuotDetailsList(quotId)
+    }
+
+    fun viewDetailsDoc(docId: String): Observable<ViewDetailsQuotResponse> {
+        return apiService.getDocDetailsList(docId)
     }
 
     fun delQuot(quotId: String): Observable<BaseResponse>{

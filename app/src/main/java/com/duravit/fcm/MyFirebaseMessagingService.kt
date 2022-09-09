@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.elvishew.xlog.XLog
 import com.duravit.R
 import com.duravit.app.Pref
+import com.duravit.app.types.FragType
 import com.duravit.app.utils.AppUtils
 
 import com.duravit.app.utils.NotificationUtils
@@ -25,6 +26,7 @@ import com.duravit.features.chat.model.ChatListDataModel
 import com.duravit.features.chat.model.ChatUserDataModel
 import com.duravit.features.dashboard.presentation.DashboardActivity
 import com.duravit.features.login.presentation.LoginActivity
+import com.duravit.features.member.model.TeamShopListDataModel
 
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -108,13 +110,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             if (remoteMessage?.data?.get("type") == "clearData") {
                 Pref.isClearData = true
 
-
                 val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.cancelAll()
-
                 notification.sendClearDataNotification(applicationContext, body!!)
-
-
             }
             else if (remoteMessage?.data?.get("type") == "chat") {
                 val intent = Intent()
@@ -143,21 +141,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
             }else if(tag.equals("logout")){
                 notification.sendLogoutNotificaiton(applicationContext, remoteMessage)
-            }
-
-            else if(tag.equals("flag")){
+            } else if(tag.equals("flag")){
                 notification.sendFCMNotificaitonCustom(applicationContext, remoteMessage)
 
                 val intent = Intent()
                 intent.action = "FCM_ACTION_RECEIVER_LEAVE"
                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
-            }
-
-            else if(tag.equals("flag_status")){
+            } else if(tag.equals("flag_status")){
                 notification.sendFCMNotificaitonByUCustom(applicationContext, remoteMessage)
 
                 val intent = Intent()
                 intent.action = "FCM_ACTION_RECEIVER_LEAVE_STATUS"
+                LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+            }else if(remoteMessage?.data?.get("type").equals("flag_status_quotation_approval")){
+                //notification.sendFCMNotificaitonQuotationapprova(applicationContext, remoteMessage)
+                notification.sendFCMNotificaitonQuotationapprova1(applicationContext, remoteMessage)
+                val intent = Intent()
+                intent.action = "FCM_ACTION_RECEIVER_quotation_approval"
                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
             }
             else {
